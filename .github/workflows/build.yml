@@ -39,7 +39,9 @@ jobs:
           test "$T" -eq 30
           test "$C" -eq 30
           test "$F" -eq 30
-          unzip -p "$APK" AndroidManifest.xml | strings | grep -q 'com.fatawa.razviya.easyurdu'
+          # NOTE: binary AndroidManifest.xml stores strings as UTF-16LE, so plain
+          # `strings` finds nothing — use `strings -e l`.
+          unzip -p "$APK" AndroidManifest.xml | strings -e l | grep -q 'com.fatawa.razviya.easyurdu'
           AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
           echo "aapt2: $AAPT2"
           "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='3' versionName='1.1.0'"
