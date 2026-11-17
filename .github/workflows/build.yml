@@ -25,22 +25,42 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
+      - name: Verify APK contents
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          ls -l "$APK"
+          sha256sum "$APK"
+          T=$(unzip -l "$APK" | grep -c 'assets/content/tashreeh/jild-')
+          C=$(unzip -l "$APK" | grep -c 'assets/content/jild-')
+          F=$(unzip -l "$APK" | grep -c 'assets/content/fehrist-')
+          echo "tashreeh files in APK: $T (expect 30)"
+          echo "content jild files in APK: $C (expect 30)"
+          echo "fehrist files in APK: $F (expect 30)"
+          test "$T" -eq 30
+          test "$C" -eq 30
+          test "$F" -eq 30
+          unzip -p "$APK" AndroidManifest.xml | strings | grep -q 'com.fatawa.razviya.easyurdu'
+          AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
+          echo "aapt2: $AAPT2"
+          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='3' versionName='1.1.0'"
+          echo "APK verification passed."
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.0.2
+      - name: Publish release v1.1.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: Fatawa Razviya — Aasan Urdu v1.0.2
+          tag_name: v1.1.0
+          name: Fatawa Razviya — Aasan Urdu v1.1.0 (Final — all 30 jilds)
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.0.2, debug build).
+            Fatawa Razviya — Aasan Urdu (v1.1.0, debug build) — THE FINAL APP.
 
             - Original Dawate Islami text of all 30 jilds + easy-Urdu tashreeh below it
+            - All 30 jilds complete: 7,923 masail/sections, 19,698 pages
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
-            - New in v1.0.2: Jild 3 tashreeh complete (242 masail/sections, 716 pages)
           files: app/build/outputs/apk/debug/app-debug.apk
