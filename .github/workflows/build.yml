@@ -31,15 +31,16 @@ jobs:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.0.0
+      - name: Publish release v1.0.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: Fatawa Razviya — Aasan Urdu v1.0.0
+          tag_name: v1.0.1
+          name: Fatawa Razviya — Aasan Urdu v1.0.1
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.0.0, debug build).
+            Fatawa Razviya — Aasan Urdu (v1.0.1, debug build).
 
             - Original Dawate Islami text of all 30 jilds + easy-Urdu tashreeh below it
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
+            - New in v1.0.1: Jild 2 tashreeh complete (187 masail/sections, 674 pages)
           files: app/build/outputs/apk/debug/app-debug.apk
