@@ -1,0 +1,45 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatawa-razviya-app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish release v1.0.0
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Fatawa Razviya — Aasan Urdu v1.0.0
+          body: |
+            Fatawa Razviya — Aasan Urdu (v1.0.0, debug build).
+
+            - Original Dawate Islami text of all 30 jilds + easy-Urdu tashreeh below it
+            - Rasail, fehrist, search, bookmarks and notes
+            - Fully offline — no account, no internet needed
+          files: app/build/outputs/apk/debug/app-debug.apk

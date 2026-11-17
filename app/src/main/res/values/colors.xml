@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Parchment / amber palette from the reader design brief -->
+    <color name="colorPrimary">#92400E</color>
+    <color name="colorPrimaryDark">#78350F</color>
+    <color name="colorAccent">#D97706</color>
+    <color name="parchment">#FAF6EE</color>
+    <color name="ic_launcher_background">#92400E</color>
+</resources>

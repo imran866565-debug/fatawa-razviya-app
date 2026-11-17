@@ -1,0 +1,127 @@
+{
+  "volume_id": 59,
+  "volume": "Jild-1-Part-1",
+  "total_pages_present": 553,
+  "chunks": [
+    {
+      "chunk": "01",
+      "start_page": 5,
+      "end_page": 62,
+      "pages_present": 57,
+      "missing_pages": [
+        40
+      ],
+      "description": "Front matter: پیش لفظ، کلمات آغاز، رضا فاؤنڈیشن، اجمالی خاکہ، استفتاء کرنے والے علماء",
+      "status": "merged",
+      "file": "jild-01-chunk-01.json"
+    },
+    {
+      "chunk": "02",
+      "start_page": 89,
+      "end_page": 140,
+      "pages_present": 51,
+      "missing_pages": [
+        102
+      ],
+      "description": "خطبۃ الکتاب + سند الفقیر + روشن تر آگاہی (شروع)",
+      "status": "merged",
+      "file": "jild-01-chunk-02.json"
+    },
+    {
+      "chunk": "03",
+      "start_page": 141,
+      "end_page": 192,
+      "pages_present": 52,
+      "missing_pages": [],
+      "description": "روشن تر آگاہی (جاری)",
+      "status": "merged",
+      "file": "jild-01-chunk-03.json"
+    },
+    {
+      "chunk": "04",
+      "start_page": 193,
+      "end_page": 238,
+      "pages_present": 46,
+      "missing_pages": [],
+      "description": "روشن تر آگاہی (اختتام)",
+      "status": "merged",
+      "file": "jild-01-chunk-04.json"
+    },
+    {
+      "chunk": "05",
+      "start_page": 239,
+      "end_page": 278,
+      "pages_present": 40,
+      "missing_pages": [],
+      "description": "باران شیریں — مسئلہ ۱ (پہلا حصہ)",
+      "status": "merged",
+      "file": "jild-01-chunk-05.json"
+    },
+    {
+      "chunk": "06",
+      "start_page": 279,
+      "end_page": 311,
+      "pages_present": 33,
+      "missing_pages": [],
+      "description": "باران شیریں — مسئلہ ۱ (بقیہ) + مسئلہ ۲ (SEEDED from v3 — copy, do not rewrite)",
+      "status": "merged",
+      "file": "jild-01-chunk-06.json"
+    },
+    {
+      "chunk": "07",
+      "start_page": 313,
+      "end_page": 368,
+      "pages_present": 55,
+      "missing_pages": [
+        346
+      ],
+      "description": "رومال کے اوصاف (مسائل ۳–۶) + روشن احکام (مسئلہ ۷)",
+      "status": "merged",
+      "file": "jild-01-chunk-07.json"
+    },
+    {
+      "chunk": "08",
+      "start_page": 369,
+      "end_page": 420,
+      "pages_present": 52,
+      "missing_pages": [],
+      "description": "نشان زدہ نقش — مسئلہ ۸ (پہلا حصہ)",
+      "status": "merged",
+      "file": "jild-01-chunk-08.json",
+      "items": 9,
+      "pages": 52
+    },
+    {
+      "chunk": "09",
+      "start_page": 421,
+      "end_page": 469,
+      "pages_present": 49,
+      "missing_pages": [],
+      "description": "نشان زدہ نقش — مسئلہ ۸ (بقیہ)",
+      "status": "merged",
+      "file": "jild-01-chunk-09.json"
+    },
+    {
+      "chunk": "10",
+      "start_page": 470,
+      "end_page": 528,
+      "pages_present": 58,
+      "missing_pages": [
+        486
+      ],
+      "description": "مسئلہ ۹ + مسئلہ ۱۰ + قوم کو تنبیہ — مسئلہ ۱۱ (شروع)",
+      "status": "merged",
+      "file": "jild-01-chunk-10.json"
+    },
+    {
+      "chunk": "11",
+      "start_page": 529,
+      "end_page": 588,
+      "pages_present": 60,
+      "missing_pages": [],
+      "description": "قوم کو تنبیہ — مسئلہ ۱۱ (بقیہ)",
+      "status": "merged",
+      "file": "jild-01-chunk-11.json"
+    }
+  ]
+}

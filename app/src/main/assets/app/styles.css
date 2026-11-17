@@ -1,0 +1,189 @@
+/* Fatawa Razviya — offline reader web app
+   Tokens: DESIGN_BRIEF.md §1 (Parchment light default, Night-paper dark, Sepia).
+   Type: Noto Nastaliq Urdu (book) + Inter (UI). RTL throughout. */
+
+/* ============ Tokens ============ */
+:root{
+  --bg:#FFFBEB; --card:#FFFFFF; --fg:#0F172A; --muted:#475569;
+  --primary:#78716C; --secondary:#92400E; --accent:#D97706; --border:#EEEDED;
+  --tint:#F6EFE3; --danger:#DC2626;
+  --orig-size:20px; --tash-size:17px; --lh:2.1;
+}
+[data-theme="dark"]{
+  --bg:#1C1917; --card:#292524; --fg:#FAFAF9; --muted:#A8A29E;
+  --primary:#A8A29E; --secondary:#D9A05B; --accent:#FBBF24; --border:#44403C;
+  --tint:#332E2A; --danger:#F87171;
+}
+[data-theme="sepia"]{
+  --bg:#F5EFE0; --card:#FFFDF5; --fg:#2E2418; --muted:#6B5D4A;
+  --primary:#78716C; --secondary:#92400E; --accent:#B45309; --border:#E5DCC8;
+  --tint:#EFE6D2; --danger:#B91C1C;
+}
+
+/* ============ Base ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.5;
+  transition:background .3s,color .3s;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit;cursor:pointer;color:inherit}
+input,select,textarea{font-family:inherit;color:inherit}
+a{color:var(--secondary)}
+.nastaliq{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
+.num{font-family:"Inter",sans-serif;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
+
+#app{max-width:680px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+
+/* ============ Views ============ */
+.view{display:none;flex:1;flex-direction:column;min-height:0}
+.view.active{display:flex}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+/* ============ App bars ============ */
+.appbar{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card);position:sticky;top:0;z-index:5}
+.appbar .title{flex:1;font-family:"Noto Nastaliq Urdu",serif;font-size:20px;line-height:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .subtitle{font-size:12px;color:var(--muted)}
+.iconbtn{width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:50%;background:transparent;border:none;color:var(--fg)}
+.iconbtn:active{background:var(--tint)}
+.iconbtn svg{width:24px;height:24px}
+.iconbtn[aria-pressed="true"]{color:var(--accent)}
+.iconbtn[aria-pressed="true"] svg{fill:var(--accent);stroke:var(--accent)}
+.iconbtn:disabled{opacity:.35;cursor:default}
+
+/* ============ Search field ============ */
+.search{flex:none;margin:14px 16px 6px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0 14px;height:48px}
+.search input{flex:1;border:none;background:transparent;font-size:15px;outline:none;min-width:0}
+.search input::placeholder{color:var(--muted)}
+.search svg{width:20px;height:20px;color:var(--muted);flex:none}
+.search .clearbtn{border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:8px}
+
+/* ============ Lists & cards ============ */
+.list{padding:6px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.card h3{font-family:"Noto Nastaliq Urdu",serif;font-size:18px;line-height:2;color:var(--fg)}
+.card .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.card .meta{font-size:12px;color:var(--muted);margin-top:6px}
+.card.clickable{cursor:pointer;text-align:right;width:100%}
+.card.clickable:active{background:var(--tint)}
+.volnum{font-family:"Inter",sans-serif;font-weight:700;font-size:15px;color:var(--secondary);min-width:36px;text-align:center}
+.volrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;text-align:right}
+.volrow:active{background:var(--tint)}
+.volrow .vtitle{flex:1;font-family:"Noto Nastaliq Urdu",serif;font-size:17px;line-height:1.9;color:var(--fg);min-width:0}
+.volrow .vmeta{font-size:12px;color:var(--muted)}
+.prog{height:4px;border-radius:99px;background:var(--border);margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--secondary);color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;border:none;min-height:40px}
+.chip.ghost{background:transparent;color:var(--secondary);border:1.5px solid var(--secondary)}
+.chips{display:flex;gap:8px;padding:10px 16px 2px;flex-wrap:wrap}
+.chips button{font-size:13px;font-weight:600;padding:9px 16px;border-radius:999px;border:1.5px solid var(--border);background:var(--card);min-height:40px}
+.chips button.active{background:var(--secondary);color:#fff;border-color:var(--secondary)}
+.grouphead{font-family:"Noto Nastaliq Urdu",serif;font-size:16px;color:var(--secondary);padding:16px 16px 2px;line-height:2;display:flex;align-items:center;gap:8px}
+.grouphead button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:48px;flex:1}
+.grouphead .count{font-family:"Inter",sans-serif;font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;text-align:center;padding:32px 20px;line-height:2}
+.loading{color:var(--muted);font-size:14px;text-align:center;padding:32px 20px}
+.err{color:var(--danger);font-size:14px;text-align:center;padding:32px 20px;line-height:2}
+
+/* ============ Bottom nav ============ */
+#nav{flex:none;display:flex;border-top:1px solid var(--border);background:var(--card);padding:4px 2px calc(8px + env(safe-area-inset-bottom));z-index:5}
+#nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);text-decoration:none;padding:8px 0;min-height:52px;justify-content:center}
+#nav a.active{color:var(--secondary);font-weight:600}
+#nav svg{width:22px;height:22px}
+
+/* ============ Splash ============ */
+#view-splash{align-items:center;justify-content:center;text-align:center;padding:32px;gap:8px;cursor:pointer}
+#view-splash .star{width:110px;height:110px;color:var(--accent)}
+#view-splash h1{font-family:"Noto Nastaliq Urdu",serif;font-size:38px;line-height:2.1}
+#view-splash .rule{width:64px;height:3px;background:var(--accent);border-radius:99px;margin:14px 0 6px}
+#view-splash .tag{font-family:"Noto Nastaliq Urdu",serif;font-size:17px;line-height:2;color:var(--muted)}
+#view-splash .count{font-size:13px;color:var(--muted)}
+#view-splash .skip{margin-top:28px;font-size:13px;color:var(--muted)}
+
+/* ============ Reader ============ */
+#view-reader .scroll{padding:16px 16px 24px}
+.reader-top{transition:transform .25s ease}
+.reader-top.hidden{transform:translateY(-110%)}
+.reader-bottom{transition:transform .25s ease}
+.reader-bottom.hidden{transform:translateY(110%)}
+.pagecard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:600px;margin:0 auto}
+.pagecard .lesson-label{font-family:"Noto Nastaliq Urdu",serif;font-size:15px;color:var(--secondary);line-height:2;margin-bottom:6px}
+.orig{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--orig-size);line-height:var(--lh);color:var(--fg);text-align:justify;white-space:pre-line;overflow-wrap:break-word}
+.orig .sp-ar{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
+.orig .sp-q{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:1.05em}
+.orig .sp-h{font-weight:700;color:var(--secondary)}
+.orig .sp-ur{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
+.divider{display:flex;align-items:center;gap:12px;margin:22px auto 14px;max-width:600px;color:var(--secondary);font-family:"Noto Nastaliq Urdu",serif;font-size:17px;line-height:2}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--accent)}
+.tashreeh{background:var(--tint);border:1px solid var(--border);border-radius:12px;padding:16px 18px;max-width:600px;margin:0 auto}
+.tashreeh .t-label{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--secondary);margin:12px 0 4px}
+.tashreeh .t-label:first-child{margin-top:0}
+.tashreeh .t-text{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--tash-size);line-height:var(--lh);color:var(--fg);text-align:justify;white-space:pre-line}
+.tashreeh .t-note{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:calc(var(--tash-size) - 1px);line-height:var(--lh);color:var(--fg);border-right:3px solid var(--accent);padding-right:12px;margin:10px 0;text-align:justify}
+.tashreeh .t-pending{color:var(--muted);font-family:"Noto Nastaliq Urdu",serif;font-size:var(--tash-size);line-height:2;text-align:center;padding:8px 0}
+.continue-chip{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px auto 0;max-width:600px;background:var(--card);border:1.5px dashed var(--accent);border-radius:12px;padding:12px;font-family:"Noto Nastaliq Urdu",serif;font-size:15px;color:var(--secondary);line-height:1.9;cursor:pointer;width:100%}
+.reader-bottom{flex:none;display:flex;align-items:center;gap:2px;padding:6px 8px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--card)}
+.reader-bottom .pg{flex:1;text-align:center;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0}
+.reader-bottom .pg b{color:var(--fg)}
+
+/* ============ Search results ============ */
+.result{display:flex;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;width:100%;text-align:right}
+.result:active{background:var(--tint)}
+.result .rtext{flex:1;font-family:"Noto Nastaliq Urdu",serif;font-size:15.5px;line-height:2;color:var(--fg);min-width:0}
+.result .rtext mark{background:transparent;color:var(--secondary);font-weight:700}
+.result .rmeta{font-size:12px;color:var(--muted);margin-top:2px;font-family:"Inter",sans-serif}
+.pgnum{font-family:"Inter",sans-serif;font-size:12px;font-weight:600;color:var(--secondary);background:var(--tint);border-radius:8px;padding:4px 8px;height:fit-content;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tabs{display:flex;gap:8px;padding:10px 16px 2px}
+.tabs button{flex:1;font-size:14px;font-weight:600;padding:11px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);min-height:48px}
+.tabs button.active{background:var(--secondary);color:#fff;border-color:var(--secondary)}
+select.vselect{flex:none;margin:10px 16px 0;height:48px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:0 12px;font-size:15px;width:calc(100% - 32px)}
+
+/* ============ Settings ============ */
+.setgroup{padding:6px 16px 10px}
+.setgroup h4{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);padding:14px 0 8px}
+.setrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;min-height:56px}
+.setrow .st{flex:1;min-width:0}
+.setrow .st b{display:block;font-size:14.5px;font-weight:600}
+.setrow .st small{color:var(--muted);font-size:12.5px;line-height:1.7;display:block}
+.toggle{width:52px;height:30px;border-radius:99px;background:var(--border);position:relative;flex:none;border:none;cursor:pointer}
+.toggle::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.toggle.on{background:var(--accent)}
+.toggle.on::after{transform:translateX(-22px)}
+input[type=range]{width:100%;accent-color:var(--accent);height:48px}
+.seg{display:flex;background:var(--tint);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:none;background:transparent;font-size:13px;font-weight:600;padding:9px 4px;border-radius:8px;min-height:40px}
+.seg button.active{background:var(--card);color:var(--secondary);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* ============ Bottom sheet ============ */
+#sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}
+#sheet-backdrop.open{display:block}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-width:680px;margin:0 auto;background:var(--card);border-radius:16px 16px 0 0;border-top:1px solid var(--border);padding:8px 16px calc(20px + env(safe-area-inset-bottom));z-index:21;display:none;max-height:82vh;overflow-y:auto}
+#sheet.open{display:block}
+#sheet .grab{width:40px;height:4px;border-radius:99px;background:var(--border);margin:6px auto 14px}
+#sheet h3{font-family:"Noto Nastaliq Urdu",serif;font-size:19px;line-height:2;margin-bottom:8px}
+#sheet .row{margin-bottom:14px}
+#sheet label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+#sheet input[type=number],#sheet input[type=text],#sheet select,#sheet textarea{width:100%;min-height:48px;border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:10px 12px;font-size:15px;outline:none}
+#sheet textarea{min-height:120px;resize:vertical;line-height:2;font-family:"Noto Nastaliq Urdu",serif;font-size:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--secondary);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;padding:12px 20px;min-height:48px}
+.btn.ghost{background:transparent;color:var(--secondary);border:1.5px solid var(--secondary)}
+.btn.danger{background:transparent;color:var(--danger);border:1.5px solid var(--danger)}
+.btn.block{width:100%}
+.btnrow{display:flex;gap:10px;margin-top:6px}
+.btnrow .btn{flex:1}
+
+/* ============ Toast ============ */
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:12px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:30;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============ Misc ============ */
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.mt8{margin-top:8px}
+.hidden{display:none !important}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important}
+}
