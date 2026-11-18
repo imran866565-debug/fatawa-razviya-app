@@ -29,6 +29,8 @@ body{
   font-size:16px; line-height:1.5;
   transition:background .3s,color .3s;
   -webkit-tap-highlight-color:transparent;
+  overflow:hidden; /* the app shell is exactly viewport height; all
+    scrolling happens inside the .scroll containers, never the body */
 }
 button{font-family:inherit;cursor:pointer;color:inherit}
 input,select,textarea{font-family:inherit;color:inherit}
@@ -36,7 +38,7 @@ a{color:var(--secondary)}
 .nastaliq{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
 .num{font-family:"Inter",sans-serif;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
 
-#app{max-width:680px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+#app{max-width:680px;margin:0 auto;height:100%;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--bg)}
 
 /* ============ Views ============ */
 .view{display:none;flex:1;flex-direction:column;min-height:0}
@@ -111,7 +113,7 @@ a{color:var(--secondary)}
 .reader-bottom.hidden{transform:translateY(110%)}
 .pagecard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:600px;margin:0 auto}
 .pagecard .lesson-label{font-family:"Noto Nastaliq Urdu",serif;font-size:15px;color:var(--secondary);line-height:2;margin-bottom:6px}
-.orig{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--orig-size);line-height:var(--lh);color:var(--fg);text-align:justify;white-space:pre-line;overflow-wrap:break-word}
+.orig{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--orig-size);line-height:var(--lh);color:var(--fg);text-align:right;white-space:pre-line;overflow-wrap:break-word}
 .orig .sp-ar{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
 .orig .sp-q{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:1.05em}
 .orig .sp-h{font-weight:700;color:var(--secondary)}
@@ -121,8 +123,8 @@ a{color:var(--secondary)}
 .tashreeh{background:var(--tint);border:1px solid var(--border);border-radius:12px;padding:16px 18px;max-width:600px;margin:0 auto}
 .tashreeh .t-label{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--secondary);margin:12px 0 4px}
 .tashreeh .t-label:first-child{margin-top:0}
-.tashreeh .t-text{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--tash-size);line-height:var(--lh);color:var(--fg);text-align:justify;white-space:pre-line}
-.tashreeh .t-note{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:calc(var(--tash-size) - 1px);line-height:var(--lh);color:var(--fg);border-right:3px solid var(--accent);padding-right:12px;margin:10px 0;text-align:justify}
+.tashreeh .t-text{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--tash-size);line-height:var(--lh);color:var(--fg);text-align:right;white-space:pre-line}
+.tashreeh .t-note{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:calc(var(--tash-size) - 1px);line-height:var(--lh);color:var(--fg);border-right:3px solid var(--accent);padding-right:12px;margin:10px 0;text-align:right}
 .tashreeh .t-pending{color:var(--muted);font-family:"Noto Nastaliq Urdu",serif;font-size:var(--tash-size);line-height:2;text-align:center;padding:8px 0}
 .continue-chip{display:flex;align-items:center;justify-content:center;gap:8px;margin:16px auto 0;max-width:600px;background:var(--card);border:1.5px dashed var(--accent);border-radius:12px;padding:12px;font-family:"Noto Nastaliq Urdu",serif;font-size:15px;color:var(--secondary);line-height:1.9;cursor:pointer;width:100%}
 .reader-bottom{flex:none;display:flex;align-items:center;gap:2px;padding:6px 8px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--card)}

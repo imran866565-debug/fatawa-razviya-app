@@ -110,7 +110,7 @@ const I18N = {
     offlineChip: '✓ آف لائن',
     settingsAbout: 'تعارف',
     aboutApp: 'فتاویٰ رضویہ — آسان اردو ایپ',
-    aboutVersion: 'نسخہ 1.1.1',
+    aboutVersion: 'نسخہ 1.1.2',
     aboutTextTitle: 'متن',
     aboutText: 'اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ — دعوتِ اسلامی ایڈیشن سے ماخوذ اصل متن۔ آسان تشریح نئی تحریر ہے، اعلیٰ حضرت کے الفاظ نہیں — وہ ہمیشہ "آسان تشریح" کے عنوان سے الگ دکھائی جاتی ہے۔',
     aboutPrivacyTitle: 'پرائیویسی',
@@ -230,7 +230,7 @@ const I18N = {
     offlineChip: '✓ Offline',
     settingsAbout: 'About',
     aboutApp: 'Fatawa Razviya — Easy Urdu app',
-    aboutVersion: 'Version 1.1.1',
+    aboutVersion: 'Version 1.1.2',
     aboutTextTitle: 'Text',
     aboutText: 'The original text of Ala Hazrat Imam Ahmad Raza Khan Qadri (may Allah have mercy on him), from the Dawate Islami edition. The easy explanation is a new writing, not Ala Hazrat’s own words — it is always shown separately under the heading “Easy explanation”.',
     aboutPrivacyTitle: 'Privacy',
@@ -312,14 +312,48 @@ function normChar(c) {
 function normStr(s) { let o = ''; for (const c of s) o += normChar(c); return o; }
 function stripTags(s) { return s.replace(/<\/?(ar|q|h|ur)>/g, ''); }
 
-/* Render decoded text: each <ar>/<q>/<h>/<ur> span becomes its own element
-   with its own font, so shaping never joins across a span boundary
-   (MARKUP.md §3). Text is escaped first; only decoder tags are re-opened. */
+/* Render decoded text: each <ar>/<q>/<h>/<ur> run becomes its own element
+   with its own font, so shaping never joins across a FONT boundary
+   (MARKUP.md §3). Adjacent runs of the SAME class are merged into one
+   span: same font, so merging is shaping-safe, and it cuts the DOM node
+   count (and the per-node Nastaliq shaping work) on every page.
+   Text is escaped first; only decoder tags are re-opened. */
 function renderTagged(text) {
-  let e = esc(text);
-  e = e.replace(/&lt;(ar|q|h|ur)&gt;/g, (m, t2) => '<span class="sp-' + t2 + '">')
-       .replace(/&lt;\/(ar|q|h|ur)&gt;/g, '</span>');
-  return e;
+  const e = esc(text);
+  const parts = e.split(/&lt;(\/?)(ar|q|h|ur)&gt;/g);
+  let out = '';
+  let runCls = null;   // class of the buffered run, or null for bare text
+  let runText = '';
+  let runEnded = false; // a close tag was seen; the run flushes unless the
+                          // same class re-opens immediately (merge case)
+  const flush = () => {
+    if (!runText) { runCls = null; runEnded = false; return; }
+    out += runCls ? '<span class="sp-' + runCls + '">' + runText + '</span>' : runText;
+    runText = '';
+    runCls = null;
+    runEnded = false;
+  };
+  for (let i = 0; i < parts.length; i += 3) {
+    const chunk = parts[i];
+    if (chunk) {
+      if (runEnded) flush(); // bare text between spans: the run really ended
+      runText += chunk;
+    }
+    if (i + 1 >= parts.length) break;
+    const closing = parts[i + 1] === '/';
+    const cls = parts[i + 2];
+    if (closing) {
+      if (runCls !== null) runEnded = true;
+    } else if (runCls === cls && runEnded) {
+      runEnded = false; // same class re-opens: resume the run, no boundary
+    } else if (runCls !== cls) {
+      flush();
+      runCls = cls;
+      runEnded = false;
+    }
+  }
+  flush();
+  return out;
 }
 
 /* ---------------- state ---------------- */
@@ -743,12 +777,18 @@ function hideChrome() {
   $('#reader-top').classList.add('hidden');
   $('#reader-bottom').classList.add('hidden');
 }
+let scrollTicking = false;
 $('#reader-scroll').addEventListener('scroll', () => {
-  const sc = $('#reader-scroll');
-  const top = sc.scrollTop;
-  if (top > lastScrollTop && top > 120 && !chromeHidden) hideChrome();
-  else if (top < lastScrollTop - 10 && chromeHidden) showChrome();
-  lastScrollTop = top;
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    scrollTicking = false;
+    const sc = $('#reader-scroll');
+    const top = sc.scrollTop;
+    if (top > lastScrollTop && top > 120 && !chromeHidden) hideChrome();
+    else if (top < lastScrollTop - 10 && chromeHidden) showChrome();
+    lastScrollTop = top;
+  });
 }, { passive: true });
 $('#reader-orig').addEventListener('click', () => { chromeHidden ? showChrome() : hideChrome(); });
 /* swipe: next page = swipe left (RTL reading direction) */
