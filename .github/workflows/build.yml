@@ -44,13 +44,20 @@ jobs:
           unzip -p "$APK" AndroidManifest.xml | strings -e l | grep -q 'com.fatawa.razviya.easyurdu'
           AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
           echo "aapt2: $AAPT2"
-          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='4' versionName='1.1.1'"
+          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='5' versionName='1.1.2'"
           # v1.1.1 fix proof: WebViewAssetLoader must be linked (the file://
           # fetch block is what broke v1.1.0 on the phone), and the bundled
           # reader must carry the English toggle + original search options.
           unzip -p "$APK" classes.dex | strings | grep -q 'androidx/webkit/WebViewAssetLoader'
           unzip -p "$APK" assets/app/app.js | grep -q 'applyLanguage'
           unzip -p "$APK" assets/app/index.html | grep -q 'search-mode'
+          # v1.1.2 fix proof: the app shell is exactly viewport height so the
+          # bottom nav stays on screen and the lists scroll inside their own
+          # containers (v1.1.1 grew to document height and buried the nav),
+          # and the reader merges same-class spans + throttles its scroll
+          # handler (the lag fix).
+          unzip -p "$APK" assets/app/styles.css | grep -q 'height:100dvh'
+          unzip -p "$APK" assets/app/app.js | grep -q 'runEnded'
           echo "APK verification passed."
 
       - name: Upload APK artifact
@@ -59,24 +66,30 @@ jobs:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.1.1
+      - name: Publish release v1.1.2
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.1
-          name: Fatawa Razviya — Aasan Urdu v1.1.1 (Load fix + English + original search)
+          tag_name: v1.1.2
+          name: Fatawa Razviya — Aasan Urdu v1.1.2 (Bottom nav + scroll + lag fix)
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.1.1, debug build).
+            Fatawa Razviya — Aasan Urdu (v1.1.2, debug build).
 
-            Fixes the v1.1.0 bug reported from the phone: volumes and rasail
-            showed "content could not be loaded". fetch() from a file:// page
-            is blocked in current Android WebView, so the bundled reader is
-            now served by WebViewAssetLoader over a real https origin —
-            same files, same offline data, no network needed.
+            Fixes the v1.1.1 bugs reported from the phone:
+            - Bottom navigation bar was missing — the app shell grew to the
+              full document height, pushing the nav (Volumes / Booklets /
+              Search / Saved / Settings) below the screen. The shell is now
+              exactly viewport height, so the nav stays pinned at the bottom
+              and Favourites/Notes are reachable again.
+            - Lists and the reader did not scroll properly — scrolling now
+              happens inside each screen's own container, not the document.
+            - Reader scroll lag — the book text is no longer justified
+              (justified Nastaliq is very slow to lay out), adjacent
+              same-style text spans are merged, and the scroll handler is
+              throttled. Scrolling should now feel smooth like the original.
 
-            - English language added (Settings → Language; book text stays Urdu)
-            - Search rebuilt with the original app's options: different-words
-              vs complete-sentence mode, Volumes/Booklets scope, all-volumes
-              vs selected-volumes range, and the تلاش کریں button
+            - Load fix from v1.1.1 kept (WebViewAssetLoader, https origin)
+            - English language (Settings → Language; book text stays Urdu)
+            - Search with the original app's options
             - All 30 jilds complete: 7,923 masail/sections, 19,698 pages
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
