@@ -33,31 +33,54 @@ jobs:
           T=$(unzip -l "$APK" | grep -c 'assets/content/tashreeh/jild-')
           C=$(unzip -l "$APK" | grep -c 'assets/content/jild-')
           F=$(unzip -l "$APK" | grep -c 'assets/content/fehrist-')
+          TP=$(unzip -l "$APK" | grep -c 'assets/content/tashreeh-pages/jild-')
+          R=$(unzip -l "$APK" | grep -c 'assets/content/refs-')
           echo "tashreeh files in APK: $T (expect 30)"
           echo "content jild files in APK: $C (expect 30)"
           echo "fehrist files in APK: $F (expect 30)"
+          echo "per-page tashreeh files in APK: $TP (expect 30)"
+          echo "reference files in APK: $R (expect 30)"
           test "$T" -eq 30
           test "$C" -eq 30
           test "$F" -eq 30
+          test "$TP" -eq 30
+          test "$R" -eq 30
           # NOTE: binary AndroidManifest.xml stores strings as UTF-16LE, so plain
           # `strings` finds nothing — use `strings -e l`.
           unzip -p "$APK" AndroidManifest.xml | strings -e l | grep -q 'com.fatawa.razviya.easyurdu'
           AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
           echo "aapt2: $AAPT2"
-          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='5' versionName='1.1.2'"
+          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='6' versionName='1.1.3'"
           # v1.1.1 fix proof: WebViewAssetLoader must be linked (the file://
           # fetch block is what broke v1.1.0 on the phone), and the bundled
-          # reader must carry the English toggle + original search options.
+          # reader must carry the original search options.
           unzip -p "$APK" classes.dex | strings | grep -q 'androidx/webkit/WebViewAssetLoader'
-          unzip -p "$APK" assets/app/app.js | grep -q 'applyLanguage'
           unzip -p "$APK" assets/app/index.html | grep -q 'search-mode'
           # v1.1.2 fix proof: the app shell is exactly viewport height so the
           # bottom nav stays on screen and the lists scroll inside their own
           # containers (v1.1.1 grew to document height and buried the nav),
           # and the reader merges same-class spans + throttles its scroll
           # handler (the lag fix).
-          unzip -p "$APK" assets/app/styles.css | grep -q 'height:100dvh'
           unzip -p "$APK" assets/app/app.js | grep -q 'runEnded'
+          # v1.1.3 fix proof: the search-shake fix REMOVED height:100dvh
+          # (the keyboard resize that made the search screen jump on
+          # Android WebView), and the reader has an exit/home button,
+          # per-page tashreeh, the orange reference box, and the bilingual
+          # UI with the original app's navy-pill lesson list. The English
+          # language toggle is gone (one bilingual UI only).
+          if unzip -p "$APK" assets/app/styles.css | grep -q 'height:100dvh'; then
+            echo "FAIL: styles.css still contains height:100dvh"; exit 1
+          fi
+          if unzip -p "$APK" assets/app/app.js | grep -q 'applyLanguage'; then
+            echo "FAIL: app.js still contains the removed English toggle"; exit 1
+          fi
+          unzip -p "$APK" assets/app/index.html | grep -q 'interactive-widget=resizes-visual'
+          unzip -p "$APK" assets/app/index.html | grep -q 'reader-home'
+          unzip -p "$APK" assets/app/app.js | grep -q 'loadTashreehPages'
+          unzip -p "$APK" assets/app/app.js | grep -q 'renderRef'
+          unzip -p "$APK" assets/app/app.js | grep -q 'lesson-pill'
+          unzip -p "$APK" assets/app/styles.css | grep -q 'refbox'
+          unzip -p "$APK" assets/app/styles.css | grep -q 'arabic-blue'
           echo "APK verification passed."
 
       - name: Upload APK artifact
@@ -66,30 +89,44 @@ jobs:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.1.2
+      - name: Publish release v1.1.3
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.2
-          name: Fatawa Razviya — Aasan Urdu v1.1.2 (Bottom nav + scroll + lag fix)
+          tag_name: v1.1.3
+          name: Fatawa Razviya — Aasan Urdu v1.1.3 (Per-page tashreeh + lesson list + original-style UI)
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.1.2, debug build).
+            Fatawa Razviya — Aasan Urdu (v1.1.3, debug build).
 
-            Fixes the v1.1.1 bugs reported from the phone:
-            - Bottom navigation bar was missing — the app shell grew to the
-              full document height, pushing the nav (Volumes / Booklets /
-              Search / Saved / Settings) below the screen. The shell is now
-              exactly viewport height, so the nav stays pinned at the bottom
-              and Favourites/Notes are reachable again.
-            - Lists and the reader did not scroll properly — scrolling now
-              happens inside each screen's own container, not the document.
-            - Reader scroll lag — the book text is no longer justified
-              (justified Nastaliq is very slow to lay out), adjacent
-              same-style text spans are merged, and the scroll handler is
-              throttled. Scrolling should now feel smooth like the original.
+            Fixes the v1.1.2 complaints reported from the phone:
+            - Per-page tashreeh — every page now shows the tashreeh of the
+              words on THAT page, flowing continuously like the original
+              text. The "continues explanation" chip is gone completely.
+            - Lesson list — opening any volume now shows the book's own
+              sections (front matter + all lessons) with start pages, as
+              big dark-blue pill rows like the original app. Tapping a
+              lesson opens the reader at its first page.
+            - Reader exit button — a home button in the reader top bar goes
+              straight back to the volumes screen.
+            - Orange reference box — each page shows its reference (book,
+              volume, page) exactly as the original app shows it, where the
+              book data has one. Nothing invented.
+            - Blue Arabic — Arabic lines and Arabic book titles in the
+              tashreeh are shown in blue, like the original app.
+            - Bilingual UI — one UI only, like the original app: English
+              label + Urdu in brackets (Volumes (جلدیں), Search (تلاش)...).
+              The English language toggle is removed.
+            - Search shake fixed — the search screen no longer jumps when
+              the keyboard opens.
+            - Mas'ala 72 (Jild 15, pp. 312–451) re-worded in the easiest
+              Urdu with inline word meanings, keeping Ala Hazrat's harsh
+              tone; no honorifics for the opponents of Ahl-e-Sunnat.
+            - Filler removed — no "available offline" text, no privacy text,
+              no option explanations.
+            - Whole UI restyled on the original app's design language:
+              dark navy + white pill rows, gold accents.
 
             - Load fix from v1.1.1 kept (WebViewAssetLoader, https origin)
-            - English language (Settings → Language; book text stays Urdu)
-            - Search with the original app's options
+            - Bottom nav + scroll + reader lag fixes from v1.1.2 kept
             - All 30 jilds complete: 7,923 masail/sections, 19,698 pages
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
