@@ -1,13 +1,24 @@
 /* Fatawa Razviya — offline reader web app (plain HTML/CSS/JS, no build step).
    Content: ../content/*.json (manifest, jild-NN, fehrist-NN, rasail, lessons,
-   tashreeh/jild-NN). Served from the project root, e.g.:
+   tashreeh/jild-NN, tashreeh-pages/jild-NN, refs-NN). Served from the
+   project root, e.g.:
    cd ~/workspace/fatawa-app && python3 -m http.server 8137  ->  /app/
 
    In the Android APK the same files are served by WebViewAssetLoader over
    https://appassets.androidplatform.net/assets/ — fetch() from a file://
    page is blocked in current Android WebView, which is why v1.1.0 showed
    "content could not be loaded" on the phone. See MainActivity.java.
-   UI language: Urdu (default, RTL) or English (LTR) — book text stays Urdu.
+
+   UI language (v1.1.3): ONE mixed UI exactly like the original Dawate
+   Islami app — English label + Urdu in brackets, RTL throughout.
+   No language toggle, no LTR English mode. Book text, tashreeh, lesson
+   names and snippets stay Urdu RTL.
+   Visual language: the original app's — light-grey background, dark navy
+   blue primary, white pill rows, gold accent, blue Arabic lines, gold
+   reference box at the bottom of each page.
+   Tashreeh is PER PAGE (v1.1.3): every page shows the tashreeh of the
+   words on that page, flowing continuously like the original — no
+   "continues" chip anywhere.
 */
 'use strict';
 
@@ -15,278 +26,139 @@ const CONTENT = '../content';
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
-/* ---------------- language (Urdu / English) ---------------- */
-let lang = 'ur';
-try { const savedLang = localStorage.getItem('fatawa.lang'); if (savedLang === 'en' || savedLang === 'ur') lang = savedLang; } catch (e) { /* storage blocked */ }
-const I18N = {
-  ur: {
-    appTitle: 'فتاویٰ رضویہ',
-    appSubtitle: 'اصل متن اوپر، آسان تشریح نیچے',
-    tapToContinue: 'آگے بڑھنے کے لیے تھپتھپائیں',
-    author: 'اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ',
-    navVolumes: 'جلدیں', navRasail: 'رسائل', navSearch: 'تلاش', navSaved: 'محفوظ', navSettings: 'ترتیبات',
-    volumesTitle: 'فتاویٰ رضویہ',
-    rasailTitle: 'رسائل اور اسباق',
-    searchTitle: 'تلاش',
-    fehristTitle: 'فہرست',
-    savedTitle: 'محفوظ شدہ',
-    settingsTitle: 'ترتیبات',
-    searchVolumesPh: 'تلاش کریں…',
-    searchRasailPh: 'رسالے یا سبق میں تلاش کریں…',
-    searchPh: 'لفظ، سبق یا فہرست تلاش کریں…',
-    fehristPh: 'فہرست میں تلاش کریں…',
-    filterAll: 'سب', filterRasail: 'رسائل', filterAbwab: 'ابواب',
-    tabWord: 'لفظ سے', tabLesson: 'سبق / رسالہ سے', tabFehrist: 'فہرست سے',
-    tabSaved: 'محفوظ صفحات', tabNotes: 'میرے نوٹ',
-    continueReading: 'جاری رکھیں',
-    resumeBtn: 'پڑھنا جاری رکھیں',
-    pagesWord: 'صفحات', lessonsWord: 'اسباق', rasailWord: 'رسائل',
-    fehristBtn: 'فہرست',
-    continuePage: 'جاری رکھیں — صفحہ',
-    loadingVolumes: 'جلدیں لادی جا رہی ہیں…',
-    loadingRasail: 'فہرست لادی جا رہی ہے…',
-    loadingPage: 'صفحہ لاد ہو رہا ہے…',
-    loadingFehrist: 'فہرست لادی جا رہی ہے…',
-    loadFail: 'مواد لاد نہیں ہو سکا۔',
-    loadFailRetry: 'ایپ بند کر کے دوبارہ کھولیں۔',
-    pageNotFound: 'صفحہ نہیں ملا',
-    volumeNotFound: 'جلد نہیں ملی',
-    volumeFileNotFound: 'جلد کی فائل نہیں ملی',
-    manifestNotFound: 'فہرست نہیں ملی',
-    nothingFound: 'کچھ نہیں ملا۔',
-    noVolSelected: 'کوئی جلد منتخب نہیں — پہلے کسی جلد پر نشان لگائیں۔',
-    pageLabel: 'صفحہ',
-    risalaLabel: 'رسالہ',
-    lessonNoPage: 'اس سبق کا کوئی صفحہ نہیں',
-    easyTashreeh: 'آسان تشریح',
-    qEasy: 'سوال — آسان تشریح',
-    aEasy: 'جواب — آسان تشریح',
-    noteLabel: 'نوٹ:',
-    tashPending: 'اس صفحے کی تشریح جلد آ رہی ہے',
-    tashContinue: 'تشریح جاری ہے — صفحہ {p} پر دیکھیں',
-    searching: 'تلاش ہو رہی ہے…',
-    searchFail: 'تلاش نہیں ہو سکی۔',
-    noLessonFound: 'کوئی سبق یا رسالہ نہیں ملا۔',
-    noFehristFound: 'فہرست میں کچھ نہیں ملا۔',
-    fehristFail: 'فہرست لاد نہیں ہو سکی۔',
-    miscGroup: 'متفرق',
-    recentTitle: 'حالیہ تلاش',
-    noRecent: 'ابھی کوئی حالیہ تلاش نہیں',
-    clearRecent: 'حالیہ تلاش صاف کریں',
-    savedEmpty: 'ابھی کچھ محفوظ نہیں۔',
-    savedEmptyHint: 'مطالعے والی اسکرین سے کسی بھی صفحے کو محفوظ کریں۔',
-    notesEmpty: 'ابھی کوئی نوٹ نہیں۔',
-    notesEmptyHint: 'مطالعے والی اسکرین سے کسی بھی صفحے پر نوٹ لکھیں۔',
-    openBtn: 'کھولیں', deleteBtn: 'حذف کریں', editBtn: 'تبدیل کریں', shareBtn: 'بانٹیں',
-    confirmDeleteNote: 'یہ نوٹ حذف کر دیا جائے؟',
-    bookmarkSaved: 'صفحہ محفوظ ہو گیا',
-    bookmarkRemoved: 'محفوظ شدہ سے ہٹا دیا گیا',
-    deleted: 'حذف کر دیا گیا',
-    noteSaved: 'نوٹ محفوظ ہو گیا',
-    noteDeleted: 'نوٹ حذف کر دیا گیا',
-    noteCopied: 'نوٹ نقل ہو گیا',
-    themeLight: 'روشن تھیم', themeDark: 'تاریک تھیم', themeSepia: 'زعفرانی تھیم',
-    fontTheme: 'فونٹ اور تھیم',
-    themeLabel: 'تھیم', themeHint: 'روشن، تاریک یا زعفرانی', lightLabel: 'روشن', darkLabel: 'تاریک', sepiaLabel: 'زعفرانی',
-    origFont: 'اصل متن کا فونٹ', tashFont: 'تشریح کا فونٹ', lineHeight: 'لائن کی اونچائی',
-    origFontRange: '۱۶ – ۲۸', tashFontRange: '۱۴ – ۲۴', lhRange: '۱٫۹ – ۲٫۴',
-    nowLabel: 'ابھی',
-    showTashreeh: 'آسان تشریح دکھائیں',
-    tashreehOffHint: 'بند کریں تو صرف اصل متن پڑھیں',
-    doneBtn: 'ہو گیا',
-    gotoPage: 'صفحے پر جائیں',
-    volumeLabel: 'جلد',
-    pageNumber: 'صفحہ نمبر',
-    goBtn: 'جائیں', firstPage: 'پہلا صفحہ', lastPage: 'آخری صفحہ',
-    noteTitle: 'نوٹ',
-    notePh: 'اپنا نوٹ یہاں لکھیں…',
-    saveBtn: 'محفوظ کریں', cancelBtn: 'منسوخ',
-    settingsReading: 'مطالعہ',
-    settingsLanguage: 'زبان',
-    settingsLanguageHint: 'اردو یا انگریزی — کتاب کا متن اردو ہی رہے گا',
-    settingsData: 'ڈیٹا',
-    offlineAvailable: 'آف لائن دستیاب',
-    offlineStats: 'تمام جلدیں فون میں محفوظ ہیں — {parts} حصے · {pages} صفحات · تقریباً {words} ملین الفاظ · انٹرنیٹ کی ضرورت نہیں',
-    offlineChip: '✓ آف لائن',
-    settingsAbout: 'تعارف',
-    aboutApp: 'فتاویٰ رضویہ — آسان اردو ایپ',
-    aboutVersion: 'نسخہ 1.1.2',
-    aboutTextTitle: 'متن',
-    aboutText: 'اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ — دعوتِ اسلامی ایڈیشن سے ماخوذ اصل متن۔ آسان تشریح نئی تحریر ہے، اعلیٰ حضرت کے الفاظ نہیں — وہ ہمیشہ "آسان تشریح" کے عنوان سے الگ دکھائی جاتی ہے۔',
-    aboutPrivacyTitle: 'پرائیویسی',
-    aboutPrivacy: 'کوئی اکاؤنٹ نہیں، کوئی ٹریکنگ نہیں، کوئی اشتہار نہیں۔ آپ کے محفوظ صفحات اور نوٹ صرف اسی آلے پر رہتے ہیں۔',
-    splashCounts: '{v} جلدیں · {r} رسائل · {p} صفحات · مکمل آف لائن',
-    searchModeWords: 'مختلف الفاظ سرچ کیجئے',
-    searchModePhrase: 'مکمل جملہ سرچ کیجئے',
-    scopeVolumes: 'جلدیں',
-    scopeRasail: 'رسائل',
-    rangeAll: 'تمام جلدوں میں سرچ',
-    rangeSelected: 'منتخب جلدوں میں سرچ',
-    searchGo: 'تلاش کریں',
-    searchHint: 'لفظ یا جملہ لکھیں، پھر تلاش کریں دبائیں۔',
-    selectAllVols: 'سب منتخب کریں',
-    clearAllVols: 'سب ہٹائیں',
-    resultsFound: '{n} نتائج ملے',
-    showingFirst: 'پہلے {n} دکھائے جا رہے ہیں',
-    showMore: 'مزید دکھائیں',
-    searchingVol: 'تلاش ہو رہی ہے… ({cur}/{total})',
-    backBtn: 'واپس',
-    themeBtn: 'تھیم بدلیں',
-    prevPage: 'پچھلا صفحہ',
-    nextPage: 'اگلا صفحہ',
-    bookmarkBtn: 'محفوظ کریں',
-    noteBtn: 'نوٹ لکھیں',
-    fontBtn: 'فونٹ اور تھیم',
-    gotoBtn: 'صفحے پر جائیں'
-  },
-  en: {
-    appTitle: 'Fatawa Razviya',
-    appSubtitle: 'Original text above, easy explanation below',
-    tapToContinue: 'Tap to continue',
-    author: 'Ala Hazrat Imam Ahmad Raza Khan Qadri (may Allah have mercy on him)',
-    navVolumes: 'Volumes', navRasail: 'Booklets', navSearch: 'Search', navSaved: 'Saved', navSettings: 'Settings',
-    volumesTitle: 'Fatawa Razviya',
-    rasailTitle: 'Booklets & Lessons',
-    searchTitle: 'Search',
-    fehristTitle: 'Contents',
-    savedTitle: 'Saved',
-    settingsTitle: 'Settings',
-    searchVolumesPh: 'Search…',
-    searchRasailPh: 'Search a booklet or lesson…',
-    searchPh: 'Search a word, lesson or contents…',
-    fehristPh: 'Search the contents…',
-    filterAll: 'All', filterRasail: 'Booklets', filterAbwab: 'Chapters',
-    tabWord: 'By word', tabLesson: 'By lesson / booklet', tabFehrist: 'By contents',
-    tabSaved: 'Saved pages', tabNotes: 'My notes',
-    continueReading: 'Continue',
-    resumeBtn: 'Continue reading',
-    pagesWord: 'pages', lessonsWord: 'lessons', rasailWord: 'booklets',
-    fehristBtn: 'Contents',
-    continuePage: 'Continue — page',
-    loadingVolumes: 'Loading volumes…',
-    loadingRasail: 'Loading list…',
-    loadingPage: 'Loading page…',
-    loadingFehrist: 'Loading contents…',
-    loadFail: 'Content could not be loaded.',
-    loadFailRetry: 'Please close and reopen the app.',
-    pageNotFound: 'Page not found',
-    volumeNotFound: 'Volume not found',
-    volumeFileNotFound: 'Volume file not found',
-    manifestNotFound: 'Contents list not found',
-    nothingFound: 'Nothing found.',
-    noVolSelected: 'No volume selected — tick a volume first.',
-    pageLabel: 'Page',
-    risalaLabel: 'Booklet',
-    lessonNoPage: 'This lesson has no page',
-    easyTashreeh: 'Easy explanation',
-    qEasy: 'Question — easy explanation',
-    aEasy: 'Answer — easy explanation',
-    noteLabel: 'Note:',
-    tashPending: 'The explanation for this page is coming soon',
-    tashContinue: 'Explanation continues — see page {p}',
-    searching: 'Searching…',
-    searchFail: 'Search failed.',
-    noLessonFound: 'No lesson or booklet found.',
-    noFehristFound: 'Nothing found in the contents.',
-    fehristFail: 'Contents could not be loaded.',
-    miscGroup: 'Miscellaneous',
-    recentTitle: 'Recent searches',
-    noRecent: 'No recent searches yet',
-    clearRecent: 'Clear recent searches',
-    savedEmpty: 'Nothing saved yet.',
-    savedEmptyHint: 'Save any page from the reading screen.',
-    notesEmpty: 'No notes yet.',
-    notesEmptyHint: 'Write a note on any page from the reading screen.',
-    openBtn: 'Open', deleteBtn: 'Delete', editBtn: 'Edit', shareBtn: 'Share',
-    confirmDeleteNote: 'Delete this note?',
-    bookmarkSaved: 'Page saved',
-    bookmarkRemoved: 'Removed from saved',
-    deleted: 'Deleted',
-    noteSaved: 'Note saved',
-    noteDeleted: 'Note deleted',
-    noteCopied: 'Note copied',
-    themeLight: 'Light theme', themeDark: 'Dark theme', themeSepia: 'Sepia theme',
-    fontTheme: 'Font & Theme',
-    themeLabel: 'Theme', themeHint: 'Light, dark or sepia', lightLabel: 'Light', darkLabel: 'Dark', sepiaLabel: 'Sepia',
-    origFont: 'Original text font', tashFont: 'Explanation font', lineHeight: 'Line height',
-    origFontRange: '16 – 28', tashFontRange: '14 – 24', lhRange: '1.9 – 2.4',
-    nowLabel: 'now',
-    showTashreeh: 'Show easy explanation',
-    tashreehOffHint: 'Off shows only the original text',
-    doneBtn: 'Done',
-    gotoPage: 'Go to page',
-    volumeLabel: 'Volume',
-    pageNumber: 'Page number',
-    goBtn: 'Go', firstPage: 'First page', lastPage: 'Last page',
-    noteTitle: 'Note',
-    notePh: 'Write your note here…',
-    saveBtn: 'Save', cancelBtn: 'Cancel',
-    settingsReading: 'Reading',
-    settingsLanguage: 'Language',
-    settingsLanguageHint: 'Urdu or English — the book text stays in Urdu',
-    settingsData: 'Data',
-    offlineAvailable: 'Available offline',
-    offlineStats: 'All volumes are saved on the phone — {parts} parts · {pages} pages · about {words} million words · no internet needed',
-    offlineChip: '✓ Offline',
-    settingsAbout: 'About',
-    aboutApp: 'Fatawa Razviya — Easy Urdu app',
-    aboutVersion: 'Version 1.1.2',
-    aboutTextTitle: 'Text',
-    aboutText: 'The original text of Ala Hazrat Imam Ahmad Raza Khan Qadri (may Allah have mercy on him), from the Dawate Islami edition. The easy explanation is a new writing, not Ala Hazrat’s own words — it is always shown separately under the heading “Easy explanation”.',
-    aboutPrivacyTitle: 'Privacy',
-    aboutPrivacy: 'No account, no tracking, no ads. Your saved pages and notes stay only on this device.',
-    splashCounts: '{v} volumes · {r} booklets · {p} pages · fully offline',
-    searchModeWords: 'Search different words',
-    searchModePhrase: 'Search the complete sentence',
-    scopeVolumes: 'Volumes',
-    scopeRasail: 'Booklets',
-    rangeAll: 'Search in all volumes',
-    rangeSelected: 'Search in selected volumes',
-    searchGo: 'Search',
-    searchHint: 'Type a word or sentence, then press Search.',
-    selectAllVols: 'Select all',
-    clearAllVols: 'Clear all',
-    resultsFound: '{n} results found',
-    showingFirst: 'Showing first {n}',
-    showMore: 'Show more',
-    searchingVol: 'Searching… ({cur}/{total})',
-    backBtn: 'Back',
-    themeBtn: 'Change theme',
-    prevPage: 'Previous page',
-    nextPage: 'Next page',
-    bookmarkBtn: 'Save page',
-    noteBtn: 'Write a note',
-    fontBtn: 'Font & theme',
-    gotoBtn: 'Go to page'
-  }
+/* ---------------- strings: ONE bilingual UI (English + Urdu in brackets) ---------------- */
+const STR = {
+  appTitle: 'Fatawa Razviya (فتاویٰ رضویہ)',
+  appSubtitle: 'Original text above, easy explanation below (اصل متن اوپر، آسان تشریح نیچے)',
+  tapToContinue: 'Tap to continue (آگے بڑھنے کے لیے تھپتھپائیں)',
+  author: 'Ala Hazrat Imam Ahmad Raza Khan Qadri (اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ)',
+  navVolumes: 'Volumes (جلدیں)', navRasail: 'Booklets (رسائل)', navSearch: 'Search (تلاش)', navSaved: 'Saved (محفوظ)', navSettings: 'Settings (ترتیبات)',
+  volumesTitle: 'Fatawa Razviya (فتاویٰ رضویہ)',
+  rasailTitle: 'Booklets & Lessons (رسائل اور اسباق)',
+  searchTitle: 'Search (تلاش)',
+  fehristTitle: 'Contents (فہرست)',
+  savedTitle: 'Saved (محفوظ شدہ)',
+  settingsTitle: 'Settings (ترتیبات)',
+  searchVolumesPh: 'Search volumes… (تلاش کریں…)',
+  searchRasailPh: 'Search a booklet or lesson… (رسالے یا سبق میں تلاش کریں…)',
+  searchPh: 'Search a word, lesson or contents… (لفظ، سبق یا فہرست تلاش کریں…)',
+  fehristPh: 'Search the contents… (فہرست میں تلاش کریں…)',
+  filterAll: 'All (سب)', filterRasail: 'Booklets (رسائل)', filterAbwab: 'Chapters (ابواب)',
+  tabWord: 'By word (لفظ سے)', tabLesson: 'By lesson / booklet (سبق / رسالہ سے)', tabFehrist: 'By contents (فہرست سے)',
+  tabSaved: 'Saved pages (محفوظ صفحات)', tabNotes: 'My notes (میرے نوٹ)',
+  continueReading: 'Continue Reading (جاری رکھیں)',
+  resumeBtn: 'Continue reading (پڑھنا جاری رکھیں)',
+  pagesWord: 'pages (صفحات)', lessonsWord: 'lessons (اسباق)', rasailWord: 'booklets (رسائل)',
+  fehristBtn: 'Contents (فہرست)',
+  continuePage: 'Continue — Page (جاری رکھیں — صفحہ)',
+  loadingVolumes: 'Loading volumes… (جلدیں لادی جا رہی ہیں…)',
+  loadingRasail: 'Loading list… (فہرست لادی جا رہی ہے…)',
+  loadingPage: 'Loading page… (صفحہ لاد ہو رہا ہے…)',
+  loadingFehrist: 'Loading contents… (فہرست لادی جا رہی ہے…)',
+  loadFail: 'Content could not be loaded. (مواد لاد نہیں ہو سکا۔)',
+  loadFailRetry: 'Please close and reopen the app. (ایپ بند کر کے دوبارہ کھولیں۔)',
+  pageNotFound: 'Page not found (صفحہ نہیں ملا)',
+  volumeNotFound: 'Volume not found (جلد نہیں ملی)',
+  volumeFileNotFound: 'Volume file not found (جلد کی فائل نہیں ملی)',
+  manifestNotFound: 'Contents list not found (فہرست نہیں ملی)',
+  nothingFound: 'Nothing found. (کچھ نہیں ملا۔)',
+  noVolSelected: 'No volume selected — tick a volume first. (کوئی جلد منتخب نہیں — پہلے کسی جلد پر نشان لگائیں۔)',
+  pageLabel: 'Page (صفحہ)',
+  risalaLabel: 'Booklet (رسالہ)',
+  lessonNoPage: 'This lesson has no page (اس سبق کا کوئی صفحہ نہیں)',
+  easyTashreeh: 'Easy Explanation (آسان تشریح)',
+  qEasy: 'Question — Easy Explanation (سوال — آسان تشریح)',
+  aEasy: 'Answer — Easy Explanation (جواب — آسان تشریح)',
+  noteLabel: 'Note: (نوٹ:)',
+  tashPending: 'The explanation for this page is coming soon (اس صفحے کی تشریح جلد آ رہی ہے)',
+  searching: 'Searching… (تلاش ہو رہی ہے…)',
+  searchFail: 'Search failed. (تلاش نہیں ہو سکی۔)',
+  noLessonFound: 'No lesson or booklet found. (کوئی سبق یا رسالہ نہیں ملا۔)',
+  noFehristFound: 'Nothing found in the contents. (فہرست میں کچھ نہیں ملا۔)',
+  fehristFail: 'Contents could not be loaded. (فہرست لاد نہیں ہو سکی۔)',
+  miscGroup: 'Miscellaneous (متفرق)',
+  recentTitle: 'Recent searches (حالیہ تلاش)',
+  noRecent: 'No recent searches yet (ابھی کوئی حالیہ تلاش نہیں)',
+  clearRecent: 'Clear recent searches (حالیہ تلاش صاف کریں)',
+  savedEmpty: 'Nothing saved yet. (ابھی کچھ محفوظ نہیں۔)',
+  savedEmptyHint: 'Save any page from the reading screen. (مطالعے والی اسکرین سے کسی بھی صفحے کو محفوظ کریں۔)',
+  notesEmpty: 'No notes yet. (ابھی کوئی نوٹ نہیں۔)',
+  notesEmptyHint: 'Write a note on any page from the reading screen. (مطالعے والی اسکرین سے کسی بھی صفحے پر نوٹ لکھیں۔)',
+  openBtn: 'Open (کھولیں)', deleteBtn: 'Delete (حذف کریں)', editBtn: 'Edit (تبدیل کریں)', shareBtn: 'Share (بانٹیں)',
+  confirmDeleteNote: 'Delete this note? (یہ نوٹ حذف کر دیا جائے؟)',
+  bookmarkSaved: 'Page saved (صفحہ محفوظ ہو گیا)',
+  bookmarkRemoved: 'Removed from saved (محفوظ شدہ سے ہٹا دیا گیا)',
+  deleted: 'Deleted (حذف کر دیا گیا)',
+  noteSaved: 'Note saved (نوٹ محفوظ ہو گیا)',
+  noteDeleted: 'Note deleted (نوٹ حذف کر دیا گیا)',
+  noteCopied: 'Note copied (نوٹ نقل ہو گیا)',
+  themeLight: 'Light theme (روشن تھیم)', themeDark: 'Dark theme (تاریک تھیم)', themeSepia: 'Sepia theme (زعفرانی تھیم)',
+  fontTheme: 'Font & Theme (فونٹ اور تھیم)',
+  themeLabel: 'Theme (تھیم)',
+  lightLabel: 'Light (روشن)', darkLabel: 'Dark (تاریک)', sepiaLabel: 'Sepia (زعفرانی)',
+  origFont: 'Original text font (اصل متن کا فونٹ)', tashFont: 'Explanation font (تشریح کا فونٹ)', lineHeight: 'Line height (لائن کی اونچائی)',
+  origFontRange: '16 – 28 (۱۶ – ۲۸)', tashFontRange: '14 – 24 (۱۴ – ۲۴)', lhRange: '1.9 – 2.4 (۱٫۹ – ۲٫۴)',
+  nowLabel: 'now (ابھی)',
+  showTashreeh: 'Show easy explanation (آسان تشریح دکھائیں)',
+  doneBtn: 'Done (ہو گیا)',
+  gotoPage: 'Go to page (صفحے پر جائیں)',
+  volumeLabel: 'Volume (جلد)',
+  pageNumber: 'Page number (صفحہ نمبر)',
+  goBtn: 'Go (جائیں)', firstPage: 'First page (پہلا صفحہ)', lastPage: 'Last page (آخری صفحہ)',
+  noteTitle: 'Note (نوٹ)',
+  notePh: 'Write your note here… (اپنا نوٹ یہاں لکھیں…)',
+  saveBtn: 'Save (محفوظ کریں)', cancelBtn: 'Cancel (منسوخ)',
+  settingsReading: 'Reading (مطالعہ)',
+  settingsAbout: 'About (تعارف)',
+  aboutApp: 'Fatawa Razviya — Easy Urdu app (فتاویٰ رضویہ — آسان اردو ایپ)',
+  aboutVersion: 'Version 1.1.3 (نسخہ ۱.۱.۳)',
+  aboutTextTitle: 'Text (متن)',
+  aboutText: 'Original text of Ala Hazrat Imam Ahmad Raza Khan Qadri (may Allah have mercy on him), from the Dawate Islami edition. The easy explanation is new writing, not his words — always shown separately as "Easy Explanation". (اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ کا اصل متن — دعوتِ اسلامی ایڈیشن سے ماخوذ۔ آسان تشریح نئی تحریر ہے، اعلیٰ حضرت کے الفاظ نہیں — وہ ہمیشہ "آسان تشریح" کے عنوان سے الگ دکھائی جاتی ہے۔)',
+  splashCounts: '{v} volumes ({vu} جلدیں) · {r} booklets ({ru} رسائل) · {p} pages ({pu} صفحات)',
+  searchModeWords: 'Search different words (مختلف الفاظ سرچ کیجئے)',
+  searchModePhrase: 'Search the complete sentence (مکمل جملہ سرچ کیجئے)',
+  scopeVolumes: 'Volumes (جلدیں)',
+  scopeRasail: 'Booklets (رسائل)',
+  rangeAll: 'Search in all volumes (تمام جلدوں میں سرچ)',
+  rangeSelected: 'Search in selected volumes (منتخب جلدوں میں سرچ)',
+  searchGo: 'Search (تلاش کریں)',
+  searchHint: 'Type a word or sentence, then press Search. (لفظ یا جملہ لکھیں، پھر تلاش کریں دبائیں۔)',
+  selectAllVols: 'Select all (سب منتخب کریں)',
+  clearAllVols: 'Clear all (سب ہٹائیں)',
+  resultsFound: '{n} results found ({nu} نتائج ملے)',
+  showingFirst: 'Showing first {n} (پہلے {nu} دکھائے جا رہے ہیں)',
+  showMore: 'Show more (مزید دکھائیں)',
+  searchingVol: 'Searching… ({cur}/{total}) (تلاش ہو رہی ہے…)',
+  backBtn: 'Back (واپس)',
+  homeBtn: 'Home (ہوم)',
+  themeBtn: 'Change theme (تھیم بدلیں)',
+  prevPage: 'Previous page (پچھلا صفحہ)',
+  nextPage: 'Next page (اگلا صفحہ)',
+  bookmarkBtn: 'Save page (محفوظ کریں)',
+  noteBtn: 'Write a note (نوٹ لکھیں)',
+  fontBtn: 'Font & theme (فونٹ اور تھیم)',
+  gotoBtn: 'Go to page (صفحے پر جائیں)',
+  refLabel: 'Reference (حوالہ)'
 };
-const t = k => (I18N[lang] && I18N[lang][k]) || I18N.ur[k] || k;
+const t = k => STR[k] || k;
 const tf = (k, vars) => {
   let s = t(k);
   for (const [key, val] of Object.entries(vars || {})) s = s.split('{' + key + '}').join(String(val));
   return s;
 };
-function applyLanguage() {
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
-  document.title = lang === 'en' ? 'Fatawa Razviya — Easy Urdu' : 'فتاویٰ رضویہ — آسان اردو';
+function applyStrings() {
+  document.documentElement.lang = 'ur';
+  document.documentElement.dir = 'rtl';
+  document.title = 'Fatawa Razviya — Easy Urdu (فتاویٰ رضویہ — آسان اردو)';
   $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   $$('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   $$('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
-  $$('#set-lang button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   syncSettingsUI();
-}
-function setLang(l) {
-  if (lang === l) return;
-  lang = l;
-  try { localStorage.setItem('fatawa.lang', l); } catch (e) { /* storage blocked */ }
-  applyLanguage();
-  route(); // re-render the current view with the new language
 }
 
 /* ---------------- helpers ---------------- */
 const URDU_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
-const ur = n => lang === 'en' ? String(n) : String(n).replace(/\d/g, d => URDU_DIGITS[d]);
+const ur = n => String(n).replace(/\d/g, d => URDU_DIGITS[d]);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const store = {
   get(k, d) { try { const v = localStorage.getItem('fatawa.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -355,6 +227,12 @@ function renderTagged(text) {
   flush();
   return out;
 }
+/* Render tashreeh text: Arabic book titles / quotes written in «...» are
+   shown in blue (like the original's blue Arabic lines); the easy Urdu
+   meaning stays in the flow next to them (v4 style). */
+function renderTashreehText(text) {
+  return esc(text).replace(/«([^»]+)»/g, '<span class="sp-ar">«$1»</span>');
+}
 
 /* ---------------- state ---------------- */
 const settings = Object.assign(
@@ -366,7 +244,8 @@ let rasailData = null;
 let allFehrist = null;        // cached flat list for search tab
 const volumeCache = {};       // volume_id -> {part, pages:[{page,lesson_id,lesson,text}], pageNos:[], byPage:{}}
 const fehristCache = {};      // jild -> entries
-const tashreehCache = {};     // jild -> {masail: [...]}
+const tashreehPagesCache = {}; // jild -> {pages: {"312": {s, j, n}}}
+const refsCache = {};         // jild -> {pages: {"312": "reference text"}}
 const searchIndexCache = {};  // volume_id -> [{page, lesson, lesson_id, plain, normText, map}]
 let currentVolumeId = null;
 let currentPage = null;
@@ -375,6 +254,7 @@ let lastScrollTop = 0;
 let splashTimer = null;
 let searchTab = 'word';
 let searchDebounce = null;
+let expandedVid = null;      // volumes accordion: which volume's lessons are open
 /* search options (original app): mode words|phrase, scope volumes|rasail,
    range all|selected */
 let searchMode = store.get('searchMode', 'words');
@@ -412,14 +292,25 @@ function setTheme(th) { settings.theme = th; applySettings(); }
 /* ---------------- volume helpers ---------------- */
 function volEntry(vid) { return (manifest || []).find(v => v.volume_id === vid) || null; }
 function jildOf(vid) { const e = volEntry(vid); return e ? e.jild : null; }
+/* Bilingual volume name, like the original app: English + Urdu in brackets. */
 function volDisplay(vid) {
   const e = volEntry(vid);
-  if (!e) return lang === 'en' ? 'Volume' : 'جلد';
+  if (!e) return 'Volume (جلد)';
   if (e.jild === 1) {
-    const part = e.volume.includes('Part-2') || e.volume_id === 60 ? 2 : 1;
-    return lang === 'en' ? 'Volume 1, Part ' + part : 'جلد ۱، حصہ ' + (part === 2 ? 'دوم' : 'اول');
+    const part = e.volume_id === 60 ? 2 : 1;
+    return part === 2 ? 'Volume 1, Part 2 (جلد ۱، حصہ دوم)' : 'Volume 1, Part 1 (جلد ۱، حصہ اول)';
   }
-  return lang === 'en' ? 'Volume ' + e.jild : 'جلد ' + ur(e.jild);
+  return 'Volume ' + e.jild + ' (جلد ' + ur(e.jild) + ')';
+}
+/* Reader crumb: volume + page, bilingual, short forms so it fits the pill. */
+function readerCrumbText(vid, pg) {
+  const e = volEntry(vid);
+  if (!e) return 'Vol · Pg ' + pg + ' (جلد · صفحہ ' + ur(pg) + ')';
+  if (e.jild === 1) {
+    const part = e.volume_id === 60 ? 2 : 1;
+    return 'Vol 1, Pt ' + part + ' · Pg ' + pg + ' (جلد ۱، حصہ ' + (part === 2 ? 'دوم' : 'اول') + ' · صفحہ ' + ur(pg) + ')';
+  }
+  return 'Vol ' + e.jild + ' · Pg ' + pg + ' (جلد ' + ur(e.jild) + ' · صفحہ ' + ur(pg) + ')';
 }
 function volRange(vid) {
   const e = volEntry(vid);
@@ -489,11 +380,21 @@ async function loadFehrist(jild) {
   fehristCache[jild] = entries;
   return entries;
 }
-async function loadTashreeh(jild) {
-  if (tashreehCache[jild]) return tashreehCache[jild];
-  const data = await fetchJSON(`${CONTENT}/tashreeh/jild-${String(jild).padStart(2, '0')}.json`);
-  tashreehCache[jild] = data || { masail: [] };
-  return tashreehCache[jild];
+/* Per-page tashreeh (v1.1.3): {"pages": {"312": {s, j, n}}} — each page's
+   own tashreeh chunk, flowing continuously like the original. */
+async function loadTashreehPages(jild) {
+  if (tashreehPagesCache[jild]) return tashreehPagesCache[jild];
+  const data = await fetchJSON(`${CONTENT}/tashreeh-pages/jild-${String(jild).padStart(2, '0')}.json`);
+  tashreehPagesCache[jild] = data || { pages: {} };
+  return tashreehPagesCache[jild];
+}
+/* Per-page references (v1.1.3): {"pages": {"312": "book, vol/page"}} —
+   the orange reference box, exactly as the original app shows it. */
+async function loadRefs(jild) {
+  if (refsCache[jild]) return refsCache[jild];
+  const data = await fetchJSON(`${CONTENT}/refs-${String(jild).padStart(2, '0')}.json`);
+  refsCache[jild] = data || { pages: {} };
+  return refsCache[jild];
 }
 async function loadAllFehrist() {
   if (allFehrist) return allFehrist;
@@ -510,7 +411,9 @@ function showView(id) {
   const showNav = NAV_ROUTES.includes(routeName);
   $('#nav').style.display = showNav ? 'flex' : 'none';
   $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.route === routeName));
-  window.scrollTo(0, 0);
+  /* NOTE (v1.1.3): no window.scrollTo(0,0) here — it fought the inner
+     scrollers and made the search screen jump on Android WebView. Each
+     view resets its own scroller where it needs to. */
 }
 function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
 function route() {
@@ -540,17 +443,74 @@ function showSplash() {
 }
 $('#view-splash').addEventListener('click', () => go('#/volumes'));
 
-/* ---------------- volumes ---------------- */
+/* ---------------- volumes ----------------
+   Like the original app: a dark-navy bar per volume; tapping it expands
+   the volume's own LESSON list (front matter + all lessons, in book
+   order, each with its verified start page) as big pill rows — simple,
+   readable, clickable. Tapping a lesson opens the reader at its first
+   page. */
 function lastRead() { return store.get('lastread', {}); }
 function saveLastRead(vid, page) {
   const lr = lastRead(); lr[vid] = page; store.set('lastread', lr);
   store.set('lastvolume', vid);
 }
+function volbarHtml(v) {
+  const [mn, mx] = volRange(v.volume_id);
+  const lp = lastRead()[v.volume_id];
+  const pct = lp ? Math.round(((lp - mn) / Math.max(1, mx - mn)) * 100) : 0;
+  const open = expandedVid === v.volume_id;
+  return `<div class="volgroup" data-vid="${v.volume_id}">
+    <div class="volbar" data-vid="${v.volume_id}" role="button" tabindex="0">
+      <div class="vb-top">
+        <div class="vb-title">${esc(volDisplay(v.volume_id))}</div>
+        <span class="vb-toggle">${open ? '−' : '+'}</span>
+      </div>
+      <div class="vb-meta"><span class="num">${v.pages}</span> ${esc(t('pagesWord'))} · <span class="num">${v.lessons}</span> ${esc(t('lessonsWord'))} · <span class="num">${v.rasail}</span> ${esc(t('rasailWord'))}</div>
+      ${lp ? `<div class="vb-prog"><i style="width:${pct}%"></i></div><div class="vb-sub">${esc(t('continuePage'))} ${ur(lp)} · ${pct}%</div>` : ''}
+    </div>
+    <div class="lessons-wrap" id="lessons-${v.volume_id}"${open ? '' : ' hidden'}></div>
+  </div>`;
+}
+function renderLessonsFor(vid) {
+  const wrap = $('#lessons-' + vid);
+  if (!wrap) return;
+  const rows = (lessonsData || []).filter(l => l.volume_id === vid);
+  if (!rows.length) { wrap.innerHTML = '<p class="empty">' + esc(t('nothingFound')) + '</p>'; return; }
+  wrap.innerHTML = rows.map(l => `<button class="lesson-pill" data-lesson="${l.lesson_id}" ${l.first_page ? '' : 'disabled'}>
+    <span class="lp-title">${esc(l.name)}</span><span class="lp-cap">«</span>
+  </button>`).join('') +
+  `<p style="text-align:center;padding:4px 0 8px"><button class="btn ghost" data-fehrist="${vid}">${esc(t('fehristBtn'))}</button></p>`;
+  $$('[data-lesson]', wrap).forEach(b => b.addEventListener('click', () => {
+    const l = lessonsData.find(x => x.lesson_id === +b.dataset.lesson);
+    if (l && l.first_page) go(`#/reader/${l.volume_id}/${l.first_page}`);
+    else toast(t('lessonNoPage'));
+  }));
+  $$('[data-fehrist]', wrap).forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation(); go('#/fehrist/' + b.dataset.fehrist);
+  }));
+}
+function toggleVolbar(vid) {
+  if (expandedVid === vid) {
+    expandedVid = null;
+    const w = $('#lessons-' + vid); if (w) w.hidden = true;
+    const bar = $(`.volbar[data-vid="${vid}"] .vb-toggle`); if (bar) bar.textContent = '+';
+    return;
+  }
+  if (expandedVid !== null) {
+    const ow = $('#lessons-' + expandedVid); if (ow) ow.hidden = true;
+    const ob = $(`.volbar[data-vid="${expandedVid}"] .vb-toggle`); if (ob) ob.textContent = '+';
+  }
+  expandedVid = vid;
+  const wrap = $('#lessons-' + vid);
+  if (wrap && !wrap.dataset.filled) { renderLessonsFor(vid); wrap.dataset.filled = '1'; }
+  if (wrap) wrap.hidden = false;
+  const bar = $(`.volbar[data-vid="${vid}"] .vb-toggle`); if (bar) bar.textContent = '−';
+}
 async function showVolumes() {
   showView('view-volumes');
   const list = $('#volumes-list');
   try {
-    await loadManifest();
+    await loadManifest(); await loadLessons();
   } catch (e) {
     list.innerHTML = '<p class="err">' + esc(t('loadFail')) + '<br>' + esc(t('loadFailRetry')) + '</p>';
     return;
@@ -567,48 +527,32 @@ async function showVolumes() {
       <p class="mt8"><button class="chip" data-resume="${lastVid}">${esc(t('resumeBtn'))} ←</button></p>
     </div>`;
   }
-  html += manifest.map(v => {
-    const [mn, mx] = volRange(v.volume_id);
-    const lp = lr[v.volume_id];
-    const pct = lp ? Math.round(((lp - mn) / Math.max(1, mx - mn)) * 100) : 0;
-    return `<div class="volrow" data-vid="${v.volume_id}" role="button" tabindex="0">
-      <span class="volnum">${v.jild === 1 ? (v.volume_id === 59 ? '۱' : '۱') : ur(v.jild)}</span>
-      <div style="flex:1;min-width:0">
-        <div class="vtitle">${esc(volDisplay(v.volume_id))}</div>
-        <div class="vmeta"><span class="num">${v.pages}</span> ${esc(t('pagesWord'))} · <span class="num">${v.lessons}</span> ${esc(t('lessonsWord'))} · <span class="num">${v.rasail}</span> ${esc(t('rasailWord'))}</div>
-        ${lp ? `<div class="prog"><i style="width:${pct}%"></i></div><div class="vmeta">${esc(t('continuePage'))} ${ur(lp)} · ${ur(pct)}٪</div>` : ''}
-      </div>
-      <button class="chip ghost" data-fehrist="${v.volume_id}">${esc(t('fehristBtn'))}</button>
-    </div>`;
-  }).join('');
+  html += manifest.map(v => volbarHtml(v)).join('');
   list.innerHTML = html;
+  // restore the open volume's lessons after a re-render
+  if (expandedVid !== null) {
+    const wrap = $('#lessons-' + expandedVid);
+    if (wrap) { renderLessonsFor(expandedVid); wrap.dataset.filled = '1'; wrap.hidden = false; }
+  }
   $$('[data-resume]', list).forEach(b => b.addEventListener('click', ev => {
     ev.stopPropagation();
     const vid = +b.dataset.resume;
     go(`#/reader/${vid}/${lastRead()[vid]}`);
   }));
-  $$('[data-fehrist]', list).forEach(b => b.addEventListener('click', ev => {
-    ev.stopPropagation(); go('#/fehrist/' + b.dataset.fehrist);
-  }));
-  $$('.volrow', list).forEach(row => {
-    const open = () => {
-      const vid = +row.dataset.vid;
-      const lp = lastRead()[vid];
-      const [mn] = volRange(vid);
-      go(`#/reader/${vid}/${lp || mn}`);
-    };
-    row.addEventListener('click', open);
-    row.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
+  $$('.volbar', list).forEach(bar => {
+    const open = () => toggleVolbar(+bar.dataset.vid);
+    bar.addEventListener('click', open);
+    bar.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
   });
   const q = $('#volumes-search');
-  q.addEventListener('input', () => {
+  q.oninput = () => {
     const nq = normStr(q.value.trim());
-    $$('.volrow', list).forEach(row => {
-      const vid = +row.dataset.vid;
+    $$('.volgroup', list).forEach(g => {
+      const vid = +g.dataset.vid;
       const name = volDisplay(vid);
-      row.style.display = (!nq || normStr(name).includes(nq) || String(vid).includes(q.value.trim())) ? '' : 'none';
+      g.style.display = (!nq || normStr(name).includes(nq) || String(vid).includes(q.value.trim())) ? '' : 'none';
     });
-  });
+  };
 }
 
 /* ---------------- rasail ---------------- */
@@ -622,7 +566,7 @@ async function showRasail() {
     wrap.innerHTML = '<p class="err">' + esc(t('loadFail')) + '</p>'; return;
   }
   renderRasailList();
-  $('#rasail-search').addEventListener('input', renderRasailList, { once: false });
+  $('#rasail-search').oninput = renderRasailList;
 }
 function renderRasailList() {
   const wrap = $('#rasail-list');
@@ -640,12 +584,10 @@ function renderRasailList() {
   for (const v of manifest) {
     const rows = byVol[v.volume_id];
     if (!rows) continue;
-    html += `<div class="grouphead">${esc(volDisplay(v.volume_id))} <span class="count num">${rows.length}</span></div><div class="list">`;
+    html += `<div class="grouphead">${esc(volDisplay(v.volume_id))} <span class="count num">${rows.length}</span></div><div class="lessons-wrap">`;
     for (const l of rows) {
-      const rng = l.first_page ? `${esc(t('pageLabel'))} ${ur(l.first_page)}${l.last_page && l.last_page !== l.first_page ? '–' + ur(l.last_page) : ''}` : esc(t('pageLabel')) + ' —';
-      html += `<button class="card clickable" data-lesson="${l.lesson_id}" ${l.first_page ? '' : 'disabled'}>
-        <h3>${esc(l.name)}</h3>
-        <p class="sub">${esc(volDisplay(v.volume_id))} · ${rng}${l.is_resala ? ' · ' + esc(t('risalaLabel')) : ''}</p>
+      html += `<button class="lesson-pill" data-lesson="${l.lesson_id}" ${l.first_page ? '' : 'disabled'}>
+        <span class="lp-title">${esc(l.name)}</span><span class="lp-cap">«</span>
       </button>`;
     }
     html += '</div>';
@@ -682,6 +624,7 @@ async function showReader(vid, pageNo) {
   const scroller = $('#reader-scroll');
   $('#reader-orig').innerHTML = '<p class="loading">' + esc(t('loadingPage')) + '</p>';
   $('#tashreeh-wrap').innerHTML = '';
+  $('#ref-wrap').innerHTML = '';
   try {
     await loadManifest();
     const vc = await loadVolumePart(vid);
@@ -695,7 +638,7 @@ async function showReader(vid, pageNo) {
     const entry = vc.byPage[pg];
     const idx = vc.pageNos.indexOf(pg);
     const [mn, mx] = volRange(vid);
-    $('#reader-crumb').textContent = `${volDisplay(vid)} · ${t('pageLabel')} ${ur(pg)}`;
+    $('#reader-crumb').textContent = readerCrumbText(vid, pg);
     $('#reader-lesson').textContent = entry.lesson ? entry.lesson.trim() : '';
     $('#reader-orig').innerHTML = renderTagged(entry.text);
     $('#reader-page').innerHTML = `<b>${ur(pg)}</b> / ${ur(mx)}`;
@@ -707,6 +650,7 @@ async function showReader(vid, pageNo) {
     scroller.scrollTop = 0;
     showChrome();
     await renderTashreeh(vid, pg);
+    await renderRef(vid, pg);
   } catch (e) {
     $('#reader-orig').innerHTML = `<p class="err">${esc(t('loadFail'))}<br>${esc(e.message || e)}</p>`;
   }
@@ -716,30 +660,38 @@ function updateBookmarkBtn() {
   const on = isBookmarked(currentVolumeId, currentPage);
   b.setAttribute('aria-pressed', on ? 'true' : 'false');
 }
+/* Per-page tashreeh (v1.1.3): this page shows the tashreeh of the words on
+   THIS page, flowing continuously from the previous page — no "continues"
+   chip anywhere. Arabic book titles in «...» render blue. */
 async function renderTashreeh(vid, pg) {
   const wrap = $('#tashreeh-wrap');
   if (!settings.tashreehOn) { wrap.innerHTML = ''; return; }
   const jild = jildOf(vid);
-  const data = await loadTashreeh(jild);
-  const m = (data.masail || []).find(x => (x.pages || []).includes(pg));
-  if (!m) {
+  const data = await loadTashreehPages(jild);
+  const entry = (data.pages || {})[String(pg)];
+  if (!entry || (!entry.s && !entry.j)) {
     wrap.innerHTML = `<div class="divider">${esc(t('easyTashreeh'))}</div>
       <div class="tashreeh"><p class="t-pending">${esc(t('tashPending'))}</p></div>`;
     return;
   }
-  if (pg === m.start_page) {
-    wrap.innerHTML = `<div class="divider">${esc(t('easyTashreeh'))}</div>
-      <div class="tashreeh">
-        <p class="t-label">${esc(t('qEasy'))}</p>
-        <p class="t-text">${esc(m.tashreeh_sawal)}</p>
-        <p class="t-label">${esc(t('aEasy'))}</p>
-        <p class="t-text">${esc(m.tashreeh_jawab)}</p>
-        ${(m.notes || []).map(n => `<p class="t-note"><b>${esc(t('noteLabel'))}</b> ${esc(n)}</p>`).join('')}
-      </div>`;
-  } else {
-    wrap.innerHTML = `<button class="continue-chip" id="tash-continue">${esc(tf('tashContinue', { p: ur(m.start_page) }))} ←</button>`;
-    $('#tash-continue').addEventListener('click', () => go(`#/reader/${vid}/${m.start_page}`));
-  }
+  wrap.innerHTML = `<div class="divider">${esc(t('easyTashreeh'))}</div>
+    <div class="tashreeh">
+      ${entry.s ? `<p class="t-label">${esc(t('qEasy'))}</p><p class="t-text">${renderTashreehText(entry.s)}</p>` : ''}
+      ${entry.j ? `<p class="t-label">${esc(t('aEasy'))}</p><p class="t-text">${renderTashreehText(entry.j)}</p>` : ''}
+      ${(entry.n || []).map(n => `<p class="t-note"><b>${esc(t('noteLabel'))}</b> ${esc(n)}</p>`).join('')}
+    </div>`;
+}
+/* Orange reference box (v1.1.3): the page's reference — book, volume,
+   page — exactly as the original app shows it. Only when the data has
+   one for this page; nothing is ever invented. */
+async function renderRef(vid, pg) {
+  const wrap = $('#ref-wrap');
+  wrap.innerHTML = '';
+  const jild = jildOf(vid);
+  const data = await loadRefs(jild);
+  const ref = (data.pages || {})[String(pg)];
+  if (!ref) return;
+  wrap.innerHTML = `<p class="ref-label">${esc(t('refLabel'))}</p><div class="refbox">${esc(ref)}</div>`;
 }
 function readerGo(dir) {
   if (!currentPart) return;
@@ -749,7 +701,8 @@ function readerGo(dir) {
 }
 $('#reader-prev').addEventListener('click', () => readerGo(-1));
 $('#reader-next').addEventListener('click', () => readerGo(1));
-$('#reader-back').addEventListener('click', () => { if (history.length > 1) history.back(); else go('#/volumes'); });
+/* Exit / home: straight to the volumes (home) screen, never back-a-page. */
+$('#reader-home').addEventListener('click', () => go('#/volumes'));
 $('#reader-theme').addEventListener('click', () => {
   setTheme(settings.theme === 'light' ? 'dark' : settings.theme === 'dark' ? 'sepia' : 'light');
   toast(settings.theme === 'light' ? t('themeLight') : settings.theme === 'dark' ? t('themeDark') : t('themeSepia'));
@@ -1164,7 +1117,7 @@ function renderSearchResults() {
   if (!total) { box.innerHTML = '<p class="empty">' + esc(t('nothingFound')) + '</p>'; return; }
   const show = lastSearchResults.slice(0, searchRendered + SEARCH_PAGE_SIZE);
   searchRendered = show.length;
-  box.innerHTML = `<p class="small muted" style="text-align:center;padding:8px 0">${esc(tf('resultsFound', { n: total }))}${total > show.length ? ' · ' + esc(tf('showingFirst', { n: show.length })) : ''}</p>` +
+  box.innerHTML = `<p class="small muted" style="text-align:center;padding:8px 0">${esc(tf('resultsFound', { n: total, nu: ur(total) }))}${total > show.length ? ' · ' + esc(tf('showingFirst', { n: show.length, nu: ur(show.length) })) : ''}</p>` +
     show.map(r => `<button class="result" data-go="${r.vid}/${r.page}">
       <span class="rtext">${r.html}<span class="rmeta">${esc((r.lesson || '').trim())} · ${esc(volDisplay(r.vid))}</span></span>
       <span class="pgnum">${r.page}</span>
@@ -1275,14 +1228,8 @@ $('#fehrist-back').addEventListener('click', () => { if (history.length > 1) his
 /* ---------------- settings view ---------------- */
 function showSettings() {
   showView('view-settings');
-  if (manifest) {
-    const totalPages = manifest.reduce((a, v) => a + v.pages, 0);
-    const totalWords = manifest.reduce((a, v) => a + v.words, 0);
-    $('#set-stats').textContent = tf('offlineStats', { parts: ur(31), pages: ur(totalPages), words: ur(Math.round(totalWords / 100000) / 10) });
-  }
 }
 $$('#set-theme button').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.theme)));
-$$('#set-lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
 $('#set-orig').addEventListener('input', e => { settings.orig = +e.target.value; applySettings(); });
 $('#set-tash').addEventListener('input', e => { settings.tash = +e.target.value; applySettings(); });
 $('#set-lh').addEventListener('input', e => { settings.lh = +e.target.value; applySettings(); });
@@ -1388,13 +1335,13 @@ function openNoteSheet(vid, pg, fromNotes) {
 
 /* ---------------- init ---------------- */
 async function init() {
-  applyLanguage();
+  applyStrings();
   applySettings();
   try {
     await loadManifest();
     const totalRasail = manifest.reduce((a, v) => a + v.rasail, 0);
     const totalPages = manifest.reduce((a, v) => a + v.pages, 0);
-    $('#splash-counts').textContent = tf('splashCounts', { v: ur(30), r: ur(totalRasail), p: ur(totalPages) });
+    $('#splash-counts').textContent = tf('splashCounts', { v: 30, vu: ur(30), r: totalRasail, ru: ur(totalRasail), p: totalPages, pu: ur(totalPages) });
   } catch (e) {
     $('#splash-counts').textContent = t('loadFail');
   }
