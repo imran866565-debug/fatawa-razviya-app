@@ -2,7 +2,7 @@
 <html lang="ur" dir="rtl" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual">
 <title>فتاویٰ رضویہ — آسان اردو</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
     <h1 data-i18n="appTitle">فتاویٰ رضویہ</h1>
     <div class="rule"></div>
     <p class="tag" data-i18n="appSubtitle">اصل متن اوپر، آسان تشریح نیچے</p>
-    <p class="count" id="splash-counts">۳۰ جلدیں · ۱۸۵ رسائل · ۱۹٬۷۰۹ صفحات · مکمل آف لائن</p>
+    <p class="count" id="splash-counts">۳۰ جلدیں · ۱۸۵ رسائل · ۱۹٬۷۰۹ صفحات</p>
     <p class="count" data-i18n="author">اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ</p>
     <p class="skip" data-i18n="tapToContinue">آگے بڑھنے کے لیے تھپتھپائیں</p>
   </section>
@@ -35,6 +35,7 @@
       </button>
     </div>
     <div class="scroll" id="volumes-scroll">
+      <div class="sechead"><span class="sec-en">VOLUMES</span><span class="sec-ur">جلدیں</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input id="volumes-search" data-i18n-ph="searchVolumesPh" placeholder="تلاش کریں…" autocomplete="off" dir="auto">
@@ -65,10 +66,10 @@
   <!-- ============ S4 Reader ============ -->
   <section class="view" id="view-reader" aria-label="مطالعہ">
     <div class="appbar reader-top" id="reader-top">
-      <button class="iconbtn" id="reader-back" data-i18n-aria="backBtn" aria-label="واپس">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      <button class="iconbtn" id="reader-home" data-i18n-aria="homeBtn" aria-label="ہوم">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
       </button>
-      <span class="title" id="reader-crumb" style="text-align:center">جلد ۱ · صفحہ ۳۰۹</span>
+      <span class="crumb-pill" id="reader-crumb">جلد ۱ · صفحہ ۳۰۹</span>
       <button class="iconbtn" id="reader-theme" data-i18n-aria="themeBtn" aria-label="تھیم بدلیں">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
       </button>
@@ -79,6 +80,7 @@
         <div class="orig" id="reader-orig" dir="rtl" lang="ur"></div>
       </div>
       <div id="tashreeh-wrap" dir="rtl" lang="ur"></div>
+      <div id="ref-wrap" dir="rtl" lang="ur"></div>
     </div>
     <div class="reader-bottom" id="reader-bottom">
       <button class="iconbtn" id="reader-prev" data-i18n-aria="prevPage" aria-label="پچھلا صفحہ">
@@ -182,16 +184,8 @@
   <section class="view" id="view-settings" aria-label="ترتیبات">
     <div class="appbar"><span class="title" data-i18n="settingsTitle">ترتیبات</span></div>
     <div class="scroll" id="settings-scroll">
-      <div class="setgroup"><h4 data-i18n="settingsLanguage">زبان</h4>
-        <div class="setrow"><div class="st"><b data-i18n="settingsLanguage">زبان</b><small data-i18n="settingsLanguageHint">اردو یا انگریزی — کتاب کا متن اردو ہی رہے گا</small></div>
-          <div class="seg" id="set-lang" style="width:200px">
-            <button data-lang="ur" class="active">اردو</button>
-            <button data-lang="en">English</button>
-          </div>
-        </div>
-      </div>
       <div class="setgroup"><h4 data-i18n="settingsReading">مطالعہ</h4>
-        <div class="setrow"><div class="st"><b data-i18n="themeLabel">تھیم</b><small data-i18n="themeHint">روشن، تاریک یا زعفرانی</small></div>
+        <div class="setrow"><div class="st"><b data-i18n="themeLabel">تھیم</b></div>
           <div class="seg" id="set-theme" style="width:200px">
             <button data-theme="light" data-i18n="lightLabel">روشن</button>
             <button data-theme="dark" data-i18n="darkLabel">تاریک</button>
@@ -204,15 +198,11 @@
         <div style="padding:0 16px 12px"><input type="range" id="set-tash" min="14" max="24" step="1" value="17" aria-label="تشریح کا فونٹ"></div>
         <div class="setrow"><div class="st"><b data-i18n="lineHeight">لائن کی اونچائی</b><small><span data-i18n="lhRange">۱٫۹ – ۲٫۴</span> (<span data-i18n="nowLabel">ابھی</span> <span id="set-lh-val">۲٫۱</span>)</small></div></div>
         <div style="padding:0 16px 12px"><input type="range" id="set-lh" min="1.9" max="2.4" step="0.1" value="2.1" aria-label="لائن کی اونچائی"></div>
-        <div class="setrow"><div class="st"><b data-i18n="showTashreeh">آسان تشریح دکھائیں</b><small data-i18n="tashreehOffHint">بند کریں تو صرف اصل متن پڑھیں</small></div><button class="toggle on" id="set-tashreeh" aria-label="تشریح آن یا آف"></button></div>
-      </div>
-      <div class="setgroup"><h4 data-i18n="settingsData">ڈیٹا</h4>
-        <div class="setrow"><div class="st"><b data-i18n="offlineAvailable">آف لائن دستیاب</b><small id="set-stats">تمام جلدیں فون میں محفوظ ہیں — انٹرنیٹ کی ضرورت نہیں</small></div><span class="chip" data-i18n="offlineChip">✓ آف لائن</span></div>
+        <div class="setrow"><div class="st"><b data-i18n="showTashreeh">آسان تشریح دکھائیں</b></div><button class="toggle on" id="set-tashreeh" aria-label="تشریح آن یا آف"></button></div>
       </div>
       <div class="setgroup"><h4 data-i18n="settingsAbout">تعارف</h4>
         <div class="setrow"><div class="st"><b data-i18n="aboutApp">فتاویٰ رضویہ — آسان اردو ایپ</b><small data-i18n="aboutVersion">نسخہ 1.1.1</small></div></div>
         <div class="setrow"><div class="st"><b data-i18n="aboutTextTitle">متن</b><small data-i18n="aboutText">اعلیٰ حضرت امام احمد رضا خان قادری رحمۃ اللہ علیہ — دعوتِ اسلامی ایڈیشن سے ماخوذ اصل متن۔ آسان تشریح نئی تحریر ہے، اعلیٰ حضرت کے الفاظ نہیں — وہ ہمیشہ "آسان تشریح" کے عنوان سے الگ دکھائی جاتی ہے۔</small></div></div>
-        <div class="setrow"><div class="st"><b data-i18n="aboutPrivacyTitle">پرائیویسی</b><small data-i18n="aboutPrivacy">کوئی اکاؤنٹ نہیں، کوئی ٹریکنگ نہیں، کوئی اشتہار نہیں۔ آپ کے محفوظ صفحات اور نوٹ صرف اسی آلے پر رہتے ہیں۔</small></div></div>
       </div>
     </div>
   </section>
