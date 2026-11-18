@@ -44,7 +44,13 @@ jobs:
           unzip -p "$APK" AndroidManifest.xml | strings -e l | grep -q 'com.fatawa.razviya.easyurdu'
           AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
           echo "aapt2: $AAPT2"
-          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='3' versionName='1.1.0'"
+          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='4' versionName='1.1.1'"
+          # v1.1.1 fix proof: WebViewAssetLoader must be linked (the file://
+          # fetch block is what broke v1.1.0 on the phone), and the bundled
+          # reader must carry the English toggle + original search options.
+          unzip -p "$APK" classes.dex | strings | grep -q 'androidx/webkit/WebViewAssetLoader'
+          unzip -p "$APK" assets/app/app.js | grep -q 'applyLanguage'
+          unzip -p "$APK" assets/app/index.html | grep -q 'search-mode'
           echo "APK verification passed."
 
       - name: Upload APK artifact
@@ -53,15 +59,24 @@ jobs:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.1.0
+      - name: Publish release v1.1.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: Fatawa Razviya — Aasan Urdu v1.1.0 (Final — all 30 jilds)
+          tag_name: v1.1.1
+          name: Fatawa Razviya — Aasan Urdu v1.1.1 (Load fix + English + original search)
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.1.0, debug build) — THE FINAL APP.
+            Fatawa Razviya — Aasan Urdu (v1.1.1, debug build).
 
-            - Original Dawate Islami text of all 30 jilds + easy-Urdu tashreeh below it
+            Fixes the v1.1.0 bug reported from the phone: volumes and rasail
+            showed "content could not be loaded". fetch() from a file:// page
+            is blocked in current Android WebView, so the bundled reader is
+            now served by WebViewAssetLoader over a real https origin —
+            same files, same offline data, no network needed.
+
+            - English language added (Settings → Language; book text stays Urdu)
+            - Search rebuilt with the original app's options: different-words
+              vs complete-sentence mode, Volumes/Booklets scope, all-volumes
+              vs selected-volumes range, and the تلاش کریں button
             - All 30 jilds complete: 7,923 masail/sections, 19,698 pages
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
