@@ -69,6 +69,10 @@ a{color:var(--secondary)}
 .search input::placeholder{color:var(--muted)}
 .search svg{width:20px;height:20px;color:var(--muted);flex:none}
 .search .clearbtn{border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:8px}
+/* The clear (✕) button must never move the search input: its box stays
+   reserved even when hidden, so showing/hiding it cannot shift the
+   field sideways (the v1.1.3 search-shake fix). */
+#search-clear.hidden{display:inline-block !important;visibility:hidden}
 
 /* ============ Lists & cards ============ */
 .list{padding:6px 16px 24px;display:flex;flex-direction:column;gap:12px}
