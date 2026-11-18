@@ -2,22 +2,29 @@
    Tokens: DESIGN_BRIEF.md §1 (Parchment light default, Night-paper dark, Sepia).
    Type: Noto Nastaliq Urdu (book) + Inter (UI). RTL throughout. */
 
-/* ============ Tokens ============ */
+/* ============ Tokens ============
+   Visual language taken from the original Dawate Islami app (v1.1.5):
+   light-grey background, dark navy blue primary, white cards, gold accent.
+   Arabic lines are BLUE (like the original's reader); the reference box is
+   GOLD-ORANGE (like the original's orange box at the bottom of each page). */
 :root{
-  --bg:#FFFBEB; --card:#FFFFFF; --fg:#0F172A; --muted:#475569;
-  --primary:#78716C; --secondary:#92400E; --accent:#D97706; --border:#EEEDED;
+  --bg:#ECECEC; --card:#FFFFFF; --fg:#0F172A; --muted:#475569;
+  --primary:#1B3A5C; --secondary:#1B3A5C; --accent:#C99327; --border:#D8D8D8;
   --tint:#F6EFE3; --danger:#DC2626;
+  --arabic-blue:#1E5BB8; --ref-bg:#D9A441; --ref-fg:#FFFFFF;
   --orig-size:20px; --tash-size:17px; --lh:2.1;
 }
 [data-theme="dark"]{
   --bg:#1C1917; --card:#292524; --fg:#FAFAF9; --muted:#A8A29E;
-  --primary:#A8A29E; --secondary:#D9A05B; --accent:#FBBF24; --border:#44403C;
+  --primary:#8FB4DC; --secondary:#8FB4DC; --accent:#FBBF24; --border:#44403C;
   --tint:#332E2A; --danger:#F87171;
+  --arabic-blue:#60A5FA; --ref-bg:#B45309; --ref-fg:#FFFFFF;
 }
 [data-theme="sepia"]{
   --bg:#F5EFE0; --card:#FFFDF5; --fg:#2E2418; --muted:#6B5D4A;
-  --primary:#78716C; --secondary:#92400E; --accent:#B45309; --border:#E5DCC8;
+  --primary:#1B3A5C; --secondary:#1B3A5C; --accent:#B45309; --border:#E5DCC8;
   --tint:#EFE6D2; --danger:#B91C1C;
+  --arabic-blue:#1D4ED8; --ref-bg:#C99327; --ref-fg:#FFFFFF;
 }
 
 /* ============ Base ============ */
@@ -38,7 +45,7 @@ a{color:var(--secondary)}
 .nastaliq{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
 .num{font-family:"Inter",sans-serif;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
 
-#app{max-width:680px;margin:0 auto;height:100%;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+#app{max-width:680px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative;background:var(--bg)}
 
 /* ============ Views ============ */
 .view{display:none;flex:1;flex-direction:column;min-height:0}
@@ -114,8 +121,9 @@ a{color:var(--secondary)}
 .pagecard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:600px;margin:0 auto}
 .pagecard .lesson-label{font-family:"Noto Nastaliq Urdu",serif;font-size:15px;color:var(--secondary);line-height:2;margin-bottom:6px}
 .orig{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;font-size:var(--orig-size);line-height:var(--lh);color:var(--fg);text-align:right;white-space:pre-line;overflow-wrap:break-word}
-.orig .sp-ar{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
-.orig .sp-q{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:1.05em}
+.orig .sp-ar{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif;color:var(--arabic-blue)}
+.orig .sp-q{font-family:"Amiri","Noto Naskh Arabic",serif;font-size:1.05em;color:var(--arabic-blue)}
+.tashreeh .sp-ar,.tashreeh .sp-q{color:var(--arabic-blue)}
 .orig .sp-h{font-weight:700;color:var(--secondary)}
 .orig .sp-ur{font-family:"Noto Nastaliq Urdu","Jameel Noori Nastaliq",serif}
 .divider{display:flex;align-items:center;gap:12px;margin:22px auto 14px;max-width:600px;color:var(--secondary);font-family:"Noto Nastaliq Urdu",serif;font-size:17px;line-height:2}
@@ -194,14 +202,48 @@ input[type=range]{width:100%;accent-color:var(--accent);height:48px}
 .volcheck{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14.5px;cursor:pointer}
 .volcheck input{width:20px;height:20px;accent-color:var(--secondary);flex:none}
 
-/* ============ English (LTR) mode ============
-   The UI flips to LTR, but the book itself (original text, tashreeh,
-   lesson names, snippets) always stays Urdu RTL. */
-html[dir="ltr"] .card.clickable, html[dir="ltr"] .volrow, html[dir="ltr"] .result{text-align:left}
-html[dir="ltr"] .orig, html[dir="ltr"] .tashreeh, html[dir="ltr"] .tashreeh .t-text, html[dir="ltr"] .tashreeh .t-note, html[dir="ltr"] .pagecard .lesson-label, html[dir="ltr"] .card h3, html[dir="ltr"] .divider, html[dir="ltr"] .continue-chip, html[dir="ltr"] .result .rtext{direction:rtl;text-align:right}
-html[dir="ltr"] .appbar .title, html[dir="ltr"] #view-splash h1, html[dir="ltr"] #view-splash .tag, html[dir="ltr"] #view-splash .count, html[dir="ltr"] #view-splash .skip, html[dir="ltr"] #nav a, html[dir="ltr"] .setgroup h4, html[dir="ltr"] .setrow .st b, html[dir="ltr"] .setrow .st small, html[dir="ltr"] .btn, html[dir="ltr"] .tabs button, html[dir="ltr"] .seg button, html[dir="ltr"] .chips button, html[dir="ltr"] .scope-toggle button, html[dir="ltr"] .radio, html[dir="ltr"] .big-search, html[dir="ltr"] .volcheck, html[dir="ltr"] #sheet h3, html[dir="ltr"] .tashreeh .t-label, html[dir="ltr"] .volrow .vtitle, html[dir="ltr"] .grouphead{font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
-html[dir="ltr"] #view-splash h1{font-size:32px}
-html[dir="ltr"] .toggle.on::after{transform:translateX(22px)}
+/* ============ Original-app design language ============
+   Section headers (VOLUMES / جلدیں), navy volume bars, split pill rows
+   (navy chevron cap + white title pill), navy crumb pill, gold reference
+   box — all copied from the original Dawate Islami app's screens. */
+.sechead{display:flex;align-items:baseline;justify-content:space-between;padding:14px 18px 2px}
+.sechead .sec-en{font-family:"Inter",sans-serif;font-size:19px;font-weight:700;letter-spacing:.02em;color:var(--primary)}
+.sechead .sec-ur{font-family:"Noto Nastaliq Urdu",serif;font-size:22px;line-height:1.6;color:var(--primary)}
+.appbar .title{color:var(--primary)}
+/* Navy volume bar (accordion header) */
+.volbar{display:block;width:100%;background:var(--primary);color:#fff;border:none;border-radius:14px;padding:12px 14px;text-align:right;cursor:pointer}
+.volbar .vb-top{display:flex;align-items:center;gap:12px}
+.volbar .vb-toggle{flex:none;width:34px;height:34px;border-radius:50%;background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1}
+.volbar .vb-title{flex:1;font-size:17px;font-weight:700;line-height:1.5;min-width:0}
+.volbar .vb-meta{font-size:12px;opacity:.85;margin-top:2px}
+.volbar .vb-prog{height:3px;border-radius:99px;background:rgba(255,255,255,.3);margin-top:8px;overflow:hidden}
+.volbar .vb-prog i{display:block;height:100%;background:var(--accent)}
+.volbar .vb-sub{font-size:12.5px;opacity:.9;margin-top:6px}
+/* Lesson / rasail / fehrist pill row: navy chevron cap + white title pill */
+.lesson-pill{display:flex;align-items:stretch;width:100%;min-height:64px;border:2px solid var(--primary);border-radius:999px;overflow:hidden;background:var(--card);cursor:pointer;padding:0;text-align:right}
+.lesson-pill .lp-title{flex:1;display:flex;align-items:center;justify-content:center;font-family:"Noto Nastaliq Urdu",serif;font-size:16.5px;line-height:1.9;color:var(--primary);padding:8px 14px;min-width:0;text-align:center}
+.lesson-pill .lp-cap{flex:none;width:56px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700}
+.lesson-pill:active .lp-title{background:var(--tint)}
+.lesson-pill:disabled{opacity:.55;cursor:default}
+.lessons-wrap{padding:10px 16px 8px;display:flex;flex-direction:column;gap:12px}
+/* Reader crumb: navy pill (like the original's "جلد: 24" pill) */
+.crumb-pill{flex:1;min-width:0;background:var(--primary);color:#fff;border-radius:999px;text-align:center;font-size:13px;font-weight:600;padding:9px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn.sq{background:var(--primary);color:#fff;border-radius:12px}
+.iconbtn.sq:active{opacity:.85}
+/* Gold reference box (like the original's orange box at the page bottom) */
+.refbox{background:var(--ref-bg);color:var(--ref-fg);border-radius:12px;padding:16px 18px;max-width:600px;margin:18px auto 0;font-family:"Noto Nastaliq Urdu",serif;font-size:16px;line-height:2.1;white-space:pre-line}
+.ref-label{max-width:600px;margin:18px auto 0;font-size:12px;font-weight:700;color:var(--muted)}
+/* Search results keep a stable height while searching (no jump) */
+#search-results{min-height:180px}
+/* Bilingual bottom-nav labels wrap to two lines */
+#nav a{font-size:10.5px;line-height:1.35}
+/* Search results: white pill rows with navy border (original's list rows) */
+.result{border:2px solid var(--primary)}
+.result .rtext{color:var(--primary)}
+.result .rtext mark{color:var(--accent)}
+.pgnum{background:var(--primary);color:#fff}
+/* Original's active scope button: gold with navy text */
+.scope-toggle button.active{color:var(--primary)}
 
 /* ============ Misc ============ */
 .muted{color:var(--muted)}
