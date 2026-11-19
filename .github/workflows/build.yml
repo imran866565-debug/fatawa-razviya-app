@@ -94,12 +94,16 @@ jobs:
           items = pages = chars = kamatlab = 0
           for f in sorted(glob.glob('assets/content/tashreeh/jild-*.json')):
               d = json.load(open(f, encoding='utf-8'))
+              # Page numbers repeat across jilds, so the union is PER FILE:
+              # boundary pages shared by 2+ items in one jild must count once.
+              file_pages = set()
               for m in d['masail']:
                   items += 1
-                  pages += len(set(m['pages']))
+                  file_pages.update(m['pages'])
                   t = (m.get('tashreeh_sawal') or '') + (m.get('tashreeh_jawab') or '')
                   chars += len(t)
                   kamatlab += t.count('کا مطلب')
+              pages += len(file_pages)
           print(f'APK tashreeh: items={items} pages={pages} chars={chars} ka-matlab={kamatlab}')
           assert items == 7923, items
           assert pages == 19698, pages
