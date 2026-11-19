@@ -50,7 +50,7 @@ jobs:
           unzip -p "$APK" AndroidManifest.xml | strings -e l | grep -q 'com.fatawa.razviya.easyurdu'
           AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | head -1)
           echo "aapt2: $AAPT2"
-          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='6' versionName='1.1.3'"
+          "$AAPT2" dump badging "$APK" | grep -E "package: name='com.fatawa.razviya.easyurdu' versionCode='7' versionName='1.1.4'"
           # v1.1.1 fix proof: WebViewAssetLoader must be linked (the file://
           # fetch block is what broke v1.1.0 on the phone), and the bundled
           # reader must carry the original search options.
@@ -81,6 +81,37 @@ jobs:
           unzip -p "$APK" assets/app/app.js | grep -q 'lesson-pill'
           unzip -p "$APK" assets/app/styles.css | grep -q 'refbox'
           unzip -p "$APK" assets/app/styles.css | grep -q 'arabic-blue'
+          # v1.1.4 proof: the bundled tashreeh must be the FULL v4 re-write,
+          # not the v3 text. v4 is decisively longer (30.08M chars vs v3
+          # 24.16M) and carries ~103k definitional "کا مطلب" glosses (v3: 353).
+          # Totals must still be exactly 7,923 items / 19,698 pages, and
+          # masala-72's sawal must not honour Gangohi with 'فرمایا'.
+          mkdir -p /tmp/apk-tashreeh
+          cd /tmp/apk-tashreeh
+          unzip -o -q "$GITHUB_WORKSPACE/$APK" 'assets/content/tashreeh/jild-*.json' 'assets/content/tashreeh-pages/jild-*.json'
+          python3 - <<'PYEOF'
+          import json, glob
+          items = pages = chars = kamatlab = 0
+          for f in sorted(glob.glob('assets/content/tashreeh/jild-*.json')):
+              d = json.load(open(f, encoding='utf-8'))
+              for m in d['masail']:
+                  items += 1
+                  pages += len(set(m['pages']))
+                  t = (m.get('tashreeh_sawal') or '') + (m.get('tashreeh_jawab') or '')
+                  chars += len(t)
+                  kamatlab += t.count('کا مطلب')
+          print(f'APK tashreeh: items={items} pages={pages} chars={chars} ka-matlab={kamatlab}')
+          assert items == 7923, items
+          assert pages == 19698, pages
+          assert chars > 28000000, chars
+          assert kamatlab > 50000, kamatlab
+          m72 = [m for m in json.load(open('assets/content/tashreeh/jild-15.json', encoding='utf-8'))['masail'] if m['id'] == 'jild15-masala-72'][0]
+          assert 'فرمایا' not in (m72.get('tashreeh_sawal') or ''), 'masala-72 sawal honours Gangohi'
+          pp = json.load(open('assets/content/tashreeh-pages/jild-15.json', encoding='utf-8'))['pages']
+          assert len(pp) == 662, len(pp)
+          print('v1.1.4 tashreeh proof passed.')
+          PYEOF
+          cd "$GITHUB_WORKSPACE"
           echo "APK verification passed."
 
       - name: Upload APK artifact
@@ -89,44 +120,34 @@ jobs:
           name: fatawa-razviya-app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish release v1.1.3
+      - name: Publish release v1.1.4
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.3
-          name: Fatawa Razviya — Aasan Urdu v1.1.3 (Per-page tashreeh + lesson list + original-style UI)
+          tag_name: v1.1.4
+          name: Fatawa Razviya — Aasan Urdu v1.1.4 (Full v4 re-written tashreeh — all 30 jilds)
           body: |
-            Fatawa Razviya — Aasan Urdu (v1.1.3, debug build).
+            Fatawa Razviya — Aasan Urdu (v1.1.4, debug build).
 
-            Fixes the v1.1.2 complaints reported from the phone:
-            - Per-page tashreeh — every page now shows the tashreeh of the
-              words on THAT page, flowing continuously like the original
-              text. The "continues explanation" chip is gone completely.
-            - Lesson list — opening any volume now shows the book's own
-              sections (front matter + all lessons) with start pages, as
-              big dark-blue pill rows like the original app. Tapping a
-              lesson opens the reader at its first page.
-            - Reader exit button — a home button in the reader top bar goes
-              straight back to the volumes screen.
-            - Orange reference box — each page shows its reference (book,
-              volume, page) exactly as the original app shows it, where the
-              book data has one. Nothing invented.
-            - Blue Arabic — Arabic lines and Arabic book titles in the
-              tashreeh are shown in blue, like the original app.
-            - Bilingual UI — one UI only, like the original app: English
-              label + Urdu in brackets (Volumes (جلدیں), Search (تلاش)...).
-              The English language toggle is removed.
-            - Search shake fixed — the search screen no longer jumps when
-              the keyboard opens.
-            - Mas'ala 72 (Jild 15, pp. 312–451) re-worded in the easiest
-              Urdu with inline word meanings, keeping Ala Hazrat's harsh
-              tone; no honorifics for the opponents of Ahl-e-Sunnat.
-            - Filler removed — no "available offline" text, no privacy text,
-              no option explanations.
-            - Whole UI restyled on the original app's design language:
-              dark navy + white pill rows, gold accents.
+            The full v4 re-write of the tashreeh — ALL 30 jilds, 7,923
+            masail/sections, 19,698 pages, re-written in the easiest Urdu:
+            - Every hard word explained definitionally in the flow
+              ("X کو Y کہتے ہیں" / "X کا مطلب Y ہے") — ~103,000 glosses.
+            - Ala Hazrat's harsh tone kept throughout the whole book, never
+              softened; his exact harsh words used wherever he used them.
+            - No honorifics for the opponents of Ahl-e-Sunnat — plain
+              کہا / لکھا for Deobandi/Wahabi figures; honorifics stay for
+              Allah, the Prophet ﷺ, the Quran, Sahaba and Sunni imams.
+            - Per-page tashreeh — every page shows the tashreeh of the
+              words on THAT page, flowing continuously. No "continues
+              explanation" anywhere.
+            - References kept as the original gives them (book, page,
+              volume), in Arabic, in the orange reference box.
 
-            - Load fix from v1.1.1 kept (WebViewAssetLoader, https origin)
-            - Bottom nav + scroll + reader lag fixes from v1.1.2 kept
+            - All v1.1.3 features kept: lesson list with front matter under
+              each volume, original-style search options, reader exit/home
+              button, blue Arabic, bilingual UI (English label + Urdu in
+              brackets), search-shake fix, bottom nav + scroll + reader lag
+              fixes, WebViewAssetLoader load fix
             - All 30 jilds complete: 7,923 masail/sections, 19,698 pages
             - Rasail, fehrist, search, bookmarks and notes
             - Fully offline — no account, no internet needed
